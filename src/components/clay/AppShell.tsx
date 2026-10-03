@@ -15,11 +15,11 @@ import { usePronote } from "@/lib/pronote/store";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { to: "/app", label: "Accueil", icon: LayoutGrid, end: true },
-  { to: "/app/subjects", label: "Matières", icon: BookOpen },
-  { to: "/app/grades", label: "Notes", icon: ListChecks },
-  { to: "/app/history", label: "Historique", icon: BarChart3 },
-  { to: "/app/settings", label: "Réglages", icon: SettingsIcon },
+  { to: "/app", label: "Tableau de bord", shortLabel: "Tableau", icon: LayoutGrid, end: true },
+  { to: "/app/subjects", label: "Matières", shortLabel: "Matières", icon: BookOpen },
+  { to: "/app/grades", label: "Notes", shortLabel: "Notes", icon: ListChecks },
+  { to: "/app/history", label: "Historique", shortLabel: "Historique", icon: BarChart3 },
+  { to: "/app/settings", label: "Réglages", shortLabel: "Réglages", icon: SettingsIcon },
 ];
 
 /**
@@ -52,9 +52,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <GraduationCap className="size-5 text-foreground" aria-hidden />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-bold tracking-tight">Clay Notes</span>
+                <span className="block text-sm font-bold tracking-tight">Pronote</span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {student ? `${student.firstName} ${student.lastName}`.trim() : "Non connecté"}
+                  {student ? `${student.firstName} ${student.lastName}`.trim() : "Aucun élève lié"}
                 </span>
               </span>
             </button>
@@ -168,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       isActive ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
-                    {item.label}
+                    {item.shortLabel}
                   </span>
                 </>
               )}

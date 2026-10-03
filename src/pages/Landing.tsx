@@ -15,7 +15,8 @@ import {
   Smartphone,
   WifiOff,
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { ClayButton } from "@/components/clay/ClayButton";
 import { ClayPill, ClaySectionTitle, ClaySurface, ClayWell } from "@/components/clay/ClaySurface";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,7 +32,7 @@ const FEATURES = [
   {
     icon: Calculator,
     title: "Moyenne en un coup d'œil",
-    body: "Ta moyenne générale s'affiche dès l'ouverture. Si PRONOTE la masque, on la calcule localement à partir de tes notes et de tes coefficients.",
+    body: "Ta moyenne générale s'affiche dès l'ouverture de ton tableau de bord. Si ton établissement la masque, on la calcule localement à partir de tes notes et de tes coefficients.",
     tint: "var(--primary)",
   },
   {
@@ -87,24 +88,81 @@ const SECURITY = [
 const STEPS = [
   {
     number: "01",
-    title: "Ton établissement",
-    body: "Colle l'adresse PRONOTE de ton collège ou lycée. On la valide avant d'aller plus loin.",
+    title: "Crée ton compte",
+    body: "Inscris-toi en quelques secondes et choisis la formule qui te convient. L'essai est gratuit.",
   },
   {
     number: "02",
-    title: "Ta connexion",
-    body: "Identifiant et mot de passe PRONOTE. Ils sont chiffrés sur l'appareil et ne partent nulle part.",
+    title: "Connecte ton établissement",
+    body: "Indique l'adresse Pronote de ton collège ou lycée, puis tes identifiants. Ils restent chiffrés sur ton appareil.",
   },
   {
     number: "03",
-    title: "Ta moyenne",
-    body: "Notes, matières et moyennes arrivent, puis se rafraîchissent toutes seules en arrière-plan.",
+    title: "Ouvre ton tableau de bord",
+    body: "Ta moyenne apparaît immédiatement, puis se met à jour toute seule en arrière-plan.",
+  },
+];
+
+const PLANS = [
+  {
+    name: "Découverte",
+    price: "0 €",
+    cadence: "pour toujours",
+    description: "Pour essayer et voir si l'espace te convient.",
+    features: [
+      "Moyenne générale automatique",
+      "Jusqu'à 2 matières suivies",
+      "Consultation hors ligne",
+    ],
+    cta: "Commencer gratuitement",
+    highlighted: false,
+  },
+  {
+    name: "Essentiel",
+    price: "2,99 €",
+    cadence: "par mois",
+    description: "Le suivi complet, pour un élève.",
+    features: [
+      "Toutes les matières et toutes les notes",
+      "Historique et courbes d'évolution",
+      "Synchronisation automatique",
+      "Notifications de nouvelles notes",
+    ],
+    cta: "Choisir Essentiel",
+    highlighted: true,
+  },
+  {
+    name: "Famille",
+    price: "4,99 €",
+    cadence: "par mois",
+    description: "Plusieurs élèves suivis depuis un même compte.",
+    features: [
+      "Tout Essentiel inclus",
+      "Jusqu'à 4 profils d'élèves",
+      "Verrouillage biométrique",
+      "Support prioritaire",
+    ],
+    cta: "Choisir Famille",
+    highlighted: false,
   },
 ];
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const { isAuthenticated } = useAuth();
+
+  // Deep links such as "/#tarifs" (used by Settings → Voir les formules) land on
+  // the landing page without an automatic scroll, so do it explicitly.
+  useEffect(() => {
+    if (!hash) return;
+    const target = document.getElementById(hash.slice(1));
+    if (!target) return;
+    const frame = requestAnimationFrame(() =>
+      target.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [hash]);
 
   const primaryTarget = isAuthenticated ? "/app" : "/auth";
   const primaryLabel = isAuthenticated ? "Ouvrir mon espace" : "Commencer";
@@ -130,9 +188,9 @@ export default function Landing() {
                 <GraduationCap className="size-5" aria-hidden />
               </span>
               <span className="text-left">
-                <span className="block text-base font-black tracking-tight">Clay Notes</span>
+                <span className="block text-base font-black tracking-tight">Pronote</span>
                 <span className="block text-[11px] font-medium text-muted-foreground">
-                  Suivi PRONOTE minimaliste
+                  Ta moyenne, calculée automatiquement
                 </span>
               </span>
             </button>
@@ -141,6 +199,7 @@ export default function Landing() {
               {[
                 { href: "#fonctionnalites", label: "Fonctionnalités" },
                 { href: "#comment", label: "Comment ça marche" },
+                { href: "#tarifs", label: "Tarifs" },
                 { href: "#securite", label: "Sécurité" },
               ].map((link) => (
                 <a
@@ -170,11 +229,11 @@ export default function Landing() {
           <motion.div initial="hidden" animate="show" variants={fadeUp} transition={SPRING}>
             <ClayPill tint="var(--accent)" className="mb-5 px-4 py-1.5 text-sm">
               <Sparkles className="size-3.5" aria-hidden />
-              Alternative légère à l'ouverture complète de PRONOTE
+              Ton espace personnel, prêt en trente secondes
             </ClayPill>
 
             <h1 className="text-4xl font-black leading-[1.05] tracking-tighter sm:text-6xl">
-              Ta scolarité,
+              Ta moyenne Pronote,
               <br />
               <span
                 className="bg-clip-text text-transparent"
@@ -183,14 +242,14 @@ export default function Landing() {
                     "linear-gradient(120deg, color-mix(in oklab, var(--primary) 92%, black 8%), color-mix(in oklab, var(--chart-2) 78%, var(--primary) 22%))",
                 }}
               >
-                en un coup d'œil.
+                calculée automatiquement.
               </span>
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Connecte ton compte PRONOTE et retrouve ta moyenne générale, tes notes et
-              tes matières en moins d'une seconde. Fluide, minimaliste, et entièrement
-              sur ton appareil.
+              Connecte ton compte Pronote une seule fois. Ta moyenne générale, tes notes
+              et tes matières se mettent à jour tout seuls, dans un espace clair et sans
+              distraction.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -213,7 +272,7 @@ export default function Landing() {
 
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-muted-foreground">
               {[
-                "Aucun serveur intermédiaire",
+                "Aucune donnée scolaire sur nos serveurs",
                 "Fonctionne hors ligne",
                 "Moyenne officielle ou calculée",
               ].map((item) => (
@@ -372,6 +431,81 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="tarifs" className="px-4 pt-24 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <ClaySectionTitle className="mb-8">Des formules simples, sans surprise</ClaySectionTitle>
+          <div className="grid gap-5 lg:grid-cols-3">
+            {PLANS.map((plan, index) => (
+              <motion.div
+                key={plan.name}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-80px" }}
+                variants={fadeUp}
+                transition={{ ...SPRING, delay: index * 0.06 }}
+              >
+                <ClaySurface
+                  depth={plan.highlighted ? "lg" : "md"}
+                  pressable
+                  tint={plan.highlighted ? "var(--primary)" : undefined}
+                  className="flex h-full flex-col p-7"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-lg font-black tracking-tight">{plan.name}</h3>
+                    {plan.highlighted ? (
+                      <ClayPill tint="var(--primary)">Le plus choisi</ClayPill>
+                    ) : null}
+                  </div>
+
+                  <p className="mt-4 flex items-end gap-2">
+                    <span className="text-4xl font-black tracking-tighter tabular-nums">
+                      {plan.price}
+                    </span>
+                    <span className="pb-1.5 text-xs font-medium text-muted-foreground">
+                      {plan.cadence}
+                    </span>
+                  </p>
+
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    {plan.description}
+                  </p>
+
+                  <ul className="mt-6 flex flex-1 flex-col gap-2.5">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2.5 text-sm">
+                        <span
+                          aria-hidden
+                          className="clay-sm mt-1 size-2.5 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor:
+                              "color-mix(in oklab, var(--accent) 80%, var(--card))",
+                          }}
+                        />
+                        <span className="leading-relaxed">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <ClayButton
+                    className="mt-7 w-full"
+                    variant={plan.highlighted ? "primary" : "secondary"}
+                    onClick={() => navigate(primaryTarget)}
+                  >
+                    {plan.cta}
+                  </ClayButton>
+                </ClaySurface>
+              </motion.div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Sans engagement, résiliable à tout moment. Les paiements sont traités par un
+            prestataire certifié — nous ne stockons aucune donnée bancaire.
+          </p>
+        </div>
+      </section>
+
       {/* Security */}
       <section id="securite" className="px-4 pt-24 sm:px-6">
         <div className="mx-auto max-w-6xl">
@@ -392,10 +526,10 @@ export default function Landing() {
                   Tes données restent sur ton téléphone.
                 </h2>
                 <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                  On ne contourne jamais une authentification, un CAPTCHA ou une mesure de
-                  sécurité de PRONOTE. On ne reverse-engineer que les mécanismes
-                  légitimement accessibles, et tes identifiants ne sont jamais envoyés
-                  vers un serveur qui nous appartient.
+                  Nous ne contournons jamais une authentification, un CAPTCHA ou une mesure
+                  de sécurité de Pronote, et nous n'explorons que les mécanismes
+                  légitimement accessibles. Tes identifiants ne sont jamais envoyés vers un
+                  serveur qui nous appartient.
                 </p>
               </div>
 
@@ -421,9 +555,10 @@ export default function Landing() {
               </div>
 
               <p className="mt-8 rounded-2xl bg-card/60 px-5 py-4 text-xs leading-relaxed text-muted-foreground">
-                Tous les établissements n'ont pas la même configuration : URL différente,
-                configuration ENT, CAPTCHA ou SSO. L'application reconnaît ces cas et
-                t'explique clairement quoi faire au lieu d'échouer silencieusement.
+                Tous les établissements n'ont pas la même configuration : adresse
+                différente, espace ENT, CAPTCHA ou connexion unique. L'application
+                reconnaît ces cas et t'explique clairement quoi faire, au lieu d'échouer
+                sans rien dire.
               </p>
             </ClaySurface>
           </motion.div>
@@ -442,10 +577,11 @@ export default function Landing() {
         >
           <ClaySurface depth="lg" tint="var(--primary)" className="p-10 sm:p-14">
             <h2 className="text-3xl font-black tracking-tighter sm:text-4xl">
-              Prêt à ne plus ouvrir PRONOTE en entier ?
+              Prêt à voir ta moyenne d'un seul coup d'œil ?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-              Connecte ton compte, ta moyenne apparaît. Le reste suit tout seul.
+              Crée ton compte, connecte ton établissement, et ta moyenne apparaît. Le
+              reste suit tout seul.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <ClayButton
@@ -465,7 +601,7 @@ export default function Landing() {
               </ClayButton>
             </div>
             <p className="mt-6 text-xs text-muted-foreground">
-              Tes identifiants restent sur ton appareil. Toujours.
+              Tes identifiants Pronote restent chiffrés sur ton appareil. Toujours.
             </p>
           </ClaySurface>
         </motion.div>
@@ -473,8 +609,11 @@ export default function Landing() {
 
       <footer className="px-4 pb-10 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
-          <p>Clay Notes — projet open source de suivi PRONOTE.</p>
-          <p>Non affilié à Index Éducation. Respecte les conditions d'utilisation de PRONOTE.</p>
+          <p>Pronote — ta moyenne, calculée automatiquement.</p>
+          <p>
+            Non affilié à Index Éducation. Respecte les conditions d'utilisation de
+            Pronote.
+          </p>
         </div>
       </footer>
     </div>

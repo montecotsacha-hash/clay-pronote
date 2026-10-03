@@ -56,11 +56,11 @@ export async function enrolBiometric(): Promise<boolean> {
     const credential = (await navigator.credentials.create({
       publicKey: {
         challenge: randomBytes(32),
-        rp: { name: "Clay Notes" },
+        rp: { name: "Pronote" },
         user: {
           id: randomBytes(16),
           name: "local-user",
-          displayName: "Clay Notes",
+          displayName: "Pronote",
         },
         pubKeyCredParams: [
           { type: "public-key", alg: -7 },

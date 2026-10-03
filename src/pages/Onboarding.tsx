@@ -79,11 +79,11 @@ export default function Onboarding() {
     setHint(undefined);
 
     if (!username.trim()) {
-      setCredentialError("Ton identifiant PRONOTE est requis.");
+      setCredentialError("Ton identifiant Pronote est requis.");
       return;
     }
     if (password.length < 3) {
-      setCredentialError("Ton mot de passe PRONOTE est requis.");
+      setCredentialError("Ton mot de passe Pronote est requis.");
       return;
     }
 
@@ -103,12 +103,12 @@ export default function Onboarding() {
     {
       title: "Ta scolarité, en un coup d'œil.",
       subtitle:
-        "Connecte ton compte PRONOTE pour retrouver tes notes et ta moyenne automatiquement.",
+        "Connecte ton compte Pronote pour retrouver tes notes et ta moyenne automatiquement.",
       cta: "Commencer",
     },
     {
       title: "Ton établissement",
-      subtitle: "Renseigne l'adresse PRONOTE fournie par ton collège ou ton lycée.",
+      subtitle: "Renseigne l'adresse Pronote fournie par ton collège ou ton lycée.",
       cta: "Continuer",
     },
     {
@@ -210,7 +210,7 @@ export default function Onboarding() {
               {step === 1 ? (
                 <div className="mt-7 flex flex-col gap-5">
                   <ClayInput
-                    label="URL PRONOTE"
+                    label="Adresse Pronote"
                     value={schoolUrl}
                     onChange={(event) => {
                       setSchoolUrl(event.target.value);
@@ -257,7 +257,7 @@ export default function Onboarding() {
                       setUsername(event.target.value);
                       setCredentialError(undefined);
                     }}
-                    placeholder="Ton identifiant PRONOTE"
+                    placeholder="Ton identifiant Pronote"
                     autoComplete="username"
                     disabled={connecting}
                     icon={<User className="size-4" aria-hidden />}
@@ -289,14 +289,14 @@ export default function Onboarding() {
                   {!online ? (
                     <p className="rounded-2xl bg-muted px-4 py-3 text-xs font-medium text-muted-foreground">
                       Aucune connexion détectée. Reconnecte-toi à internet pour lier ton
-                      compte PRONOTE.
+                      compte Pronote.
                     </p>
                   ) : null}
 
                   <p className="flex items-start gap-2 rounded-2xl bg-card/60 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
                     <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                    Tes identifiants restent sur ton appareil. On ne contourne jamais une
-                    authentification, un CAPTCHA ou une mesure de sécurité de PRONOTE.
+                    Tes identifiants restent sur ton appareil. Nous ne contournons jamais
+                    une authentification, un CAPTCHA ou une mesure de sécurité de Pronote.
                   </p>
                 </div>
               ) : null}
@@ -320,7 +320,7 @@ export default function Onboarding() {
                     onClick={handleConnect}
                     icon={<Lock className="size-5" />}
                   >
-                    {connecting ? "Connexion à PRONOTE…" : current.cta}
+                    {connecting ? "Connexion à Pronote…" : current.cta}
                   </ClayButton>
                 )}
 
@@ -342,7 +342,7 @@ export default function Onboarding() {
         {connecting ? (
           <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            Connexion à PRONOTE…
+            Connexion à Pronote…
           </p>
         ) : null}
       </div>

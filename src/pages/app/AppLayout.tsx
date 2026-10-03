@@ -43,9 +43,10 @@ export default function AppLayout() {
           >
             <GraduationCap className="size-7" aria-hidden />
           </span>
-          <h1 className="mt-5 text-xl font-black tracking-tight">Aucun compte PRONOTE lié</h1>
+          <h1 className="mt-5 text-xl font-black tracking-tight">Aucun compte Pronote lié</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Connecte ton compte pour afficher ta moyenne, tes notes et tes matières.
+            Connecte ton établissement pour afficher ta moyenne, tes notes et tes
+            matières.
           </p>
           <ClayButton
             className="mt-6 w-full"

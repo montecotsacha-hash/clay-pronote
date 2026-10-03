@@ -137,12 +137,12 @@ export default function Settings() {
       <h1 className="text-3xl font-black tracking-tighter">Réglages</h1>
 
       {/* Account */}
-      <Section icon={UserCog} title="Compte PRONOTE">
+      <Section icon={UserCog} title="Compte Pronote">
         <div className="flex flex-col gap-1 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-bold tracking-tight">
-                {student ? `${student.firstName} ${student.lastName}`.trim() : "Aucun compte lié"}
+                {student ? `${student.firstName} ${student.lastName}`.trim() : "Aucun élève lié"}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {student?.schoolName || "Établissement non renseigné"}
@@ -277,9 +277,10 @@ export default function Settings() {
       <Section icon={Database} title="Données" delay={0.25}>
         <div className="flex flex-wrap items-center justify-between gap-3 py-4">
           <div>
-            <p className="text-sm font-semibold tracking-tight">Supprimer les données locales</p>
+            <p className="text-sm font-semibold tracking-tight">Supprimer mes données</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Efface le cache, les identifiants chiffrés, les préférences et l'historique.
+              Efface le cache local, les identifiants chiffrés, les préférences et
+              l'historique.
             </p>
           </div>
           <ClayButton
@@ -298,6 +299,10 @@ export default function Settings() {
       <Section icon={Info} title="À propos" delay={0.3}>
         <div className="flex flex-col gap-2 py-4 text-sm">
           <div className="flex items-center justify-between">
+            <span className="font-semibold tracking-tight">Formule</span>
+            <span className="text-muted-foreground">Essentiel · 2,99 € par mois</span>
+          </div>
+          <div className="flex items-center justify-between">
             <span className="font-semibold tracking-tight">Version</span>
             <span className="text-muted-foreground">1.0.0</span>
           </div>
@@ -305,10 +310,18 @@ export default function Settings() {
             <span className="font-semibold tracking-tight">Connecteur</span>
             <span className="text-muted-foreground">FakePronoteDataSource (démo)</span>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Projet open source. Non affilié à Index Éducation. Cette application ne
-            contourne aucune authentification, aucun CAPTCHA ni aucune mesure de sécurité
-            de PRONOTE, et n'envoie jamais tes identifiants vers un serveur propriétaire.
+          <ClayButton
+            variant="secondary"
+            size="sm"
+            className="mt-2 self-start"
+            onClick={() => navigate("/#tarifs")}
+          >
+            Voir les formules
+          </ClayButton>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            Non affilié à Index Éducation. Cette application ne contourne aucune
+            authentification, aucun CAPTCHA ni aucune mesure de sécurité de Pronote, et
+            n'envoie jamais tes identifiants vers un serveur qui nous appartient.
           </p>
         </div>
       </Section>

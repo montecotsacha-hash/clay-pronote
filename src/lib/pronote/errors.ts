@@ -40,7 +40,7 @@ export class PronoteError extends Error {
 
 const MESSAGES: Record<PronoteErrorCode, { message: string; hint?: string }> = {
   InvalidCredentials: {
-    message: "Impossible de se connecter à PRONOTE.",
+    message: "Impossible de se connecter à Pronote.",
     hint: "Vérifie ton identifiant et ton mot de passe.",
   },
   InvalidPronoteUrl: {
@@ -52,16 +52,16 @@ const MESSAGES: Record<PronoteErrorCode, { message: string; hint?: string }> = {
     hint: "Tes dernières données restent consultables hors ligne.",
   },
   SessionExpired: {
-    message: "Ta session PRONOTE a expiré.",
+    message: "Ta session Pronote a expiré.",
     hint: "Reconnecte-toi pour repartir sur des données à jour.",
   },
   PronoteUnavailable: {
-    message: "PRONOTE ne répond pas pour le moment.",
+    message: "Pronote ne répond pas pour le moment.",
     hint: "Réessaie dans quelques minutes.",
   },
   CaptchaRequired: {
     message: "Cet établissement demande une vérification supplémentaire.",
-    hint: "Ouvre PRONOTE dans un navigateur pour te connecter une fois, puis réessaie.",
+    hint: "Ouvre Pronote dans un navigateur pour te connecter une fois, puis réessaie.",
   },
   ServerError: {
     message: "Le serveur de l'établissement a renvoyé une erreur.",
@@ -72,7 +72,7 @@ const MESSAGES: Record<PronoteErrorCode, { message: string; hint?: string }> = {
     hint: "Une mise à jour du connecteur est peut-être nécessaire.",
   },
   IncompatibleConnector: {
-    message: "PRONOTE a modifié son système de connexion.",
+    message: "Pronote a modifié son système de connexion.",
     hint: "Une mise à jour du connecteur est nécessaire. Tes données locales restent disponibles.",
   },
   UnknownError: {

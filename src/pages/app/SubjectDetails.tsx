@@ -153,7 +153,7 @@ export default function SubjectDetails() {
             </div>
             <div className="flex flex-col items-end gap-2">
               {average?.source === "OFFICIAL" ? (
-                <ClayPill tint="var(--chart-2)">Officielle PRONOTE</ClayPill>
+                <ClayPill tint="var(--chart-2)">Officielle Pronote</ClayPill>
               ) : (
                 <ClayPill tint="var(--chart-3)">Calculée localement</ClayPill>
               )}

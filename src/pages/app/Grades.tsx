@@ -57,7 +57,7 @@ export default function Grades() {
     return (
       <ClaySurface depth="lg" className="p-8 text-center">
         <p className="text-sm text-muted-foreground">
-          Connecte ton compte PRONOTE pour voir tes notes.
+          Connecte ton établissement pour voir tes notes.
         </p>
       </ClaySurface>
     );

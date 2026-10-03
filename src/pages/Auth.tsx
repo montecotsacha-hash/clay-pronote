@@ -102,8 +102,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               <div className="mt-6 text-center">
                 <h1 className="text-2xl font-black tracking-tight">Bienvenue</h1>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Crée ton espace local pour connecter ton compte PRONOTE et suivre ta
-                  moyenne.
+                  Crée ton compte pour suivre ta moyenne, tes notes et tes matières.
+                  L'essai est gratuit, sans engagement.
                 </p>
               </div>
 
@@ -229,8 +229,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               Tes données restent sur ton appareil
             </ClayPill>
             <p className="text-center text-xs text-muted-foreground">
-              Ce compte sert uniquement à identifier ton espace local. Aucune donnée
-              scolaire n'est envoyée sur un serveur.
+              Ce compte sert à identifier ton espace et à gérer ton abonnement. Aucune
+              donnée scolaire n'est envoyée sur un serveur.
             </p>
           </div>
         </ClaySurface>

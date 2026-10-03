@@ -35,7 +35,7 @@ export default function Subjects() {
     return (
       <ClaySurface depth="lg" className="p-8 text-center">
         <p className="text-sm text-muted-foreground">
-          Connecte ton compte PRONOTE pour voir tes matières.
+          Connecte ton établissement pour voir tes matières.
         </p>
       </ClaySurface>
     );
@@ -114,7 +114,7 @@ export default function Subjects() {
 
                   {row.source === "OFFICIAL" ? (
                     <ClayPill tint="var(--chart-2)" className="mt-3 ml-16">
-                      Moyenne officielle PRONOTE
+                      Moyenne officielle Pronote
                     </ClayPill>
                   ) : (
                     <ClayPill tint="var(--chart-3)" className="mt-3 ml-16">

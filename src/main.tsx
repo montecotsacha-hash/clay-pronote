@@ -136,8 +136,8 @@ createRoot(document.getElementById("root")!).render(
                   path="/onboarding"
                   element={
                     <RequireAuth
-                      title="Connecte ton compte PRONOTE"
-                      description="Ton espace local de suivi est protégé : connecte-toi pour lier ton compte PRONOTE."
+                      title="Connecte ton compte Pronote"
+                      description="Ton tableau de bord est personnel : connecte-toi pour lier ton établissement."
                       redirectImmediately
                     >
                       <PronoteRoot>

@@ -97,7 +97,7 @@ export function AverageCard({
           <p className="text-xl font-bold tracking-tight">{firstName}</p>
         </div>
         <ClayIconButton
-          label="Actualiser les données PRONOTE"
+          label="Actualiser mes données Pronote"
           loading={refreshing}
           onClick={onRefresh}
         >
@@ -165,8 +165,8 @@ export function AverageCard({
 
       {!average ? (
         <p className="relative mt-5 rounded-2xl bg-card/70 px-4 py-3 text-sm text-muted-foreground">
-          Aucune moyenne disponible pour le moment. Dès que PRONOTE expose tes notes,
-          ta moyenne apparaîtra ici — officielle ou calculée localement.
+          Aucune moyenne disponible pour le moment. Dès que tes notes sont accessibles,
+          ta moyenne apparaît ici — officielle ou calculée localement.
         </p>
       ) : null}
 

@@ -68,7 +68,7 @@ export default function Home() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <Loader2 className="size-7 animate-spin text-muted-foreground" aria-hidden />
-        <p className="text-sm text-muted-foreground">Chargement de tes données locales…</p>
+        <p className="text-sm text-muted-foreground">Ouverture de ton tableau de bord…</p>
       </div>
     );
   }
@@ -77,7 +77,9 @@ export default function Home() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-2">
         <ClaySurface depth="lg" className="max-w-md p-8 text-center">
-          <h1 className="text-xl font-black tracking-tight">Impossible de se connecter à PRONOTE.</h1>
+          <h1 className="text-xl font-black tracking-tight">
+            Impossible de se connecter à Pronote.
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">{state.error}</p>
           {state.hint ? (
             <p className="mt-1 text-sm font-medium text-muted-foreground">{state.hint}</p>
@@ -94,9 +96,9 @@ export default function Home() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-2">
         <ClaySurface depth="lg" className="max-w-md p-8 text-center">
-          <h1 className="text-xl font-black tracking-tight">Aucun compte PRONOTE lié</h1>
+          <h1 className="text-xl font-black tracking-tight">Aucun compte Pronote lié</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Connecte ton compte pour afficher ta moyenne et tes notes.
+            Connecte ton établissement pour afficher ta moyenne et tes notes.
           </p>
           <ClayButton className="mt-6 w-full" onClick={() => navigate("/onboarding")}>
             Connecter mon compte
@@ -110,6 +112,13 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-8">
+      <div className="px-1">
+        <h1 className="text-3xl font-black tracking-tighter">Tableau de bord</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Ta moyenne et tes dernières notes, mises à jour automatiquement.
+        </p>
+      </div>
+
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
         <AverageCard
           average={average}
@@ -263,11 +272,11 @@ export default function Home() {
       </ClaySurface>
 
       <p className="px-1 text-center text-xs text-muted-foreground">
-        Session PRONOTE :{" "}
+        Session Pronote :{" "}
         <span className={cn("font-semibold", session ? "text-foreground" : "text-muted-foreground")}>
           {session ? "active" : "à reconnecter"}
         </span>{" "}
-        · <ClayPill tint="var(--chart-2)">Aucune donnée envoyée à un serveur tiers</ClayPill>
+        · <ClayPill tint="var(--chart-2)">Aucune donnée scolaire envoyée à un serveur</ClayPill>
       </p>
     </div>
   );

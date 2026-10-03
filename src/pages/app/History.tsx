@@ -48,7 +48,7 @@ export default function History() {
     return (
       <ClaySurface depth="lg" className="p-8 text-center">
         <p className="text-sm text-muted-foreground">
-          Connecte ton compte PRONOTE pour voir l'évolution de ta moyenne.
+          Connecte ton établissement pour voir l'évolution de ta moyenne.
         </p>
       </ClaySurface>
     );
@@ -197,7 +197,7 @@ export default function History() {
       <p className="px-1 text-xs text-muted-foreground">
         Source de la moyenne affichée :{" "}
         {snapshot.generalAverage?.source === "OFFICIAL"
-          ? "PRONOTE (moyenne officielle)"
+          ? "Pronote (moyenne officielle)"
           : "calcul local à partir de tes notes et coefficients"}
         .
       </p>
