@@ -1,51 +1,482 @@
-// TODO: REPLACE THIS LANDING PAGE WITH AN ELEGANT, THEMATIC, AND WELL-DESIGNED LANDING PAGE RELEVANT TO THE PROJECT
 import { motion } from "framer-motion";
-import { Loader } from "lucide-react";
-import logo from "@/assets/logo.svg";
+import {
+  ArrowRight,
+  BarChart3,
+  BellRing,
+  Calculator,
+  CloudOff,
+  Fingerprint,
+  GraduationCap,
+  LineChart,
+  Lock,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Smartphone,
+  WifiOff,
+} from "lucide-react";
+import { useNavigate } from "react-router";
+import { ClayButton } from "@/components/clay/ClayButton";
+import { ClayPill, ClaySectionTitle, ClaySurface, ClayWell } from "@/components/clay/ClaySurface";
+import { useAuth } from "@/hooks/use-auth";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0 },
+};
+
+const SPRING = { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const };
+
+const FEATURES = [
+  {
+    icon: Calculator,
+    title: "Moyenne en un coup d'œil",
+    body: "Ta moyenne générale s'affiche dès l'ouverture. Si PRONOTE la masque, on la calcule localement à partir de tes notes et de tes coefficients.",
+    tint: "var(--primary)",
+  },
+  {
+    icon: LineChart,
+    title: "Évolution dans le temps",
+    body: "Suis ta progression par semaine, par mois ou par trimestre, matière par matière, avec des graphiques lisibles.",
+    tint: "var(--chart-2)",
+  },
+  {
+    icon: CloudOff,
+    title: "Fonctionne hors ligne",
+    body: "Tes notes et ta moyenne restent consultables sans réseau. L'interface affiche le cache puis se met à jour en silence.",
+    tint: "var(--chart-3)",
+  },
+  {
+    icon: BellRing,
+    title: "Alertes locales",
+    body: "Nouvelle note ou moyenne qui bouge : une notification est générée sur ton appareil, jamais via un serveur tiers.",
+    tint: "var(--chart-4)",
+  },
+  {
+    icon: RefreshCw,
+    title: "Synchronisation discrète",
+    body: "Synchronisation périodique uniquement avec du réseau, sans jamais lancer deux requêtes en parallèle.",
+    tint: "var(--chart-5)",
+  },
+  {
+    icon: BarChart3,
+    title: "Le détail qui compte",
+    body: "Chaque note avec sa date, son coefficient et son commentaire. Filtre par matière, par jour ou par période.",
+    tint: "var(--primary)",
+  },
+];
+
+const SECURITY = [
+  {
+    icon: Lock,
+    title: "Identifiants chiffrés",
+    body: "Tes identifiants sont chiffrés en AES-GCM avec une clé non exportable stockée dans le magasin sécurisé de l'appareil. Jamais en clair, jamais dans un journal.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Aucun serveur à nous",
+    body: "Pas de backend propriétaire, pas de compte chez nous, pas de traçage. Les données scolaires restent sur ton téléphone.",
+  },
+  {
+    icon: Fingerprint,
+    title: "Verrouillage biométrique",
+    body: "Protège l'application avec ton empreinte, ta reconnaissance faciale ou le code de ton appareil.",
+  },
+];
+
+const STEPS = [
+  {
+    number: "01",
+    title: "Ton établissement",
+    body: "Colle l'adresse PRONOTE de ton collège ou lycée. On la valide avant d'aller plus loin.",
+  },
+  {
+    number: "02",
+    title: "Ta connexion",
+    body: "Identifiant et mot de passe PRONOTE. Ils sont chiffrés sur l'appareil et ne partent nulle part.",
+  },
+  {
+    number: "03",
+    title: "Ta moyenne",
+    body: "Notes, matières et moyennes arrivent, puis se rafraîchissent toutes seules en arrière-plan.",
+  },
+];
 
 export default function Landing() {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen flex flex-col"
-    >
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
-      
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="max-w-5xl mx-auto relative px-4">
-        {/* TODO: landing page goes here; replace with the landing page */}
-        <div className="flex justify-center">
-          <img
-            src={logo}
-            alt="Lock Icon"
-            width={64}
-            height={64}
-            className="rounded-lg mb-8 mt-24"
-          />
-        </div>
-        <div className="flex items-center justify-center text-foreground">
-          <Loader className="h-8 w-8 animate-spin mr-4 shrink-0" />
-          <span className="text-base">
-            <a
-              href="https://freebuff.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline hover:text-primary/80 transition-colors font-medium"
+  const primaryTarget = isAuthenticated ? "/app" : "/auth";
+  const primaryLabel = isAuthenticated ? "Ouvrir mon espace" : "Commencer";
+
+  return (
+    <div className="min-h-screen overflow-x-hidden">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 px-4 pt-4 sm:px-6">
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
+          <ClaySurface
+            depth="md"
+            className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3"
+          >
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="clay-pressable flex items-center gap-3 rounded-2xl pr-2"
             >
-              freebuff.com
-            </a>
-            {" "}is generating your project...
-          </span>
+              <span
+                className="clay-sm flex size-10 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: "color-mix(in oklab, var(--primary) 34%, var(--card))" }}
+              >
+                <GraduationCap className="size-5" aria-hidden />
+              </span>
+              <span className="text-left">
+                <span className="block text-base font-black tracking-tight">Clay Notes</span>
+                <span className="block text-[11px] font-medium text-muted-foreground">
+                  Suivi PRONOTE minimaliste
+                </span>
+              </span>
+            </button>
+
+            <nav className="hidden items-center gap-1 md:flex" aria-label="Sections">
+              {[
+                { href: "#fonctionnalites", label: "Fonctionnalités" },
+                { href: "#comment", label: "Comment ça marche" },
+                { href: "#securite", label: "Sécurité" },
+              ].map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="clay-pressable rounded-2xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+
+            <ClayButton
+              size="sm"
+              onClick={() => navigate(primaryTarget)}
+              icon={<ArrowRight className="size-4" />}
+            >
+              {primaryLabel}
+            </ClayButton>
+          </ClaySurface>
+        </motion.div>
+      </header>
+
+      {/* Hero */}
+      <section className="relative px-4 pt-14 sm:px-6 sm:pt-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+          <motion.div initial="hidden" animate="show" variants={fadeUp} transition={SPRING}>
+            <ClayPill tint="var(--accent)" className="mb-5 px-4 py-1.5 text-sm">
+              <Sparkles className="size-3.5" aria-hidden />
+              Alternative légère à l'ouverture complète de PRONOTE
+            </ClayPill>
+
+            <h1 className="text-4xl font-black leading-[1.05] tracking-tighter sm:text-6xl">
+              Ta scolarité,
+              <br />
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(120deg, color-mix(in oklab, var(--primary) 92%, black 8%), color-mix(in oklab, var(--chart-2) 78%, var(--primary) 22%))",
+                }}
+              >
+                en un coup d'œil.
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              Connecte ton compte PRONOTE et retrouve ta moyenne générale, tes notes et
+              tes matières en moins d'une seconde. Fluide, minimaliste, et entièrement
+              sur ton appareil.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <ClayButton
+                size="lg"
+                onClick={() => navigate(primaryTarget)}
+                icon={<ArrowRight className="size-5" />}
+              >
+                {primaryLabel}
+              </ClayButton>
+              <ClayButton
+                size="lg"
+                variant="secondary"
+                onClick={() => navigate("/app")}
+                icon={<Smartphone className="size-5" />}
+              >
+                Voir une démo
+              </ClayButton>
+            </div>
+
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-muted-foreground">
+              {[
+                "Aucun serveur intermédiaire",
+                "Fonctionne hors ligne",
+                "Moyenne officielle ou calculée",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="clay-sm size-2.5 rounded-full"
+                    style={{ backgroundColor: "color-mix(in oklab, var(--accent) 80%, var(--card))" }}
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Clay phone mock-up */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ ...SPRING, delay: 0.12 }}
+            className="relative"
+          >
+            <div
+              aria-hidden
+              className="animate-clay-float absolute -left-6 top-10 size-24 rounded-full opacity-70"
+              style={{ backgroundColor: "color-mix(in oklab, var(--chart-4) 45%, transparent)" }}
+            />
+            <div
+              aria-hidden
+              className="absolute -right-4 bottom-16 size-20 rounded-full opacity-60"
+              style={{ backgroundColor: "color-mix(in oklab, var(--accent) 55%, transparent)" }}
+            />
+
+            <ClaySurface depth="lg" className="relative mx-auto w-full max-w-sm p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Bonjour,</p>
+                  <p className="text-base font-bold tracking-tight">Alex</p>
+                </div>
+                <ClayPill tint="var(--chart-2)">
+                  <RefreshCw className="size-3" aria-hidden /> à jour
+                </ClayPill>
+              </div>
+
+              <ClaySurface
+                depth="sm"
+                tint="var(--primary)"
+                className="p-5"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Moyenne générale
+                </p>
+                <div className="mt-2 flex items-end gap-2">
+                  <span className="text-5xl font-black leading-none tracking-tighter tabular-nums">
+                    15,8
+                  </span>
+                  <span className="pb-1 text-lg font-bold text-muted-foreground">/20</span>
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Mis à jour il y a 2 min · 2e trimestre
+                </p>
+              </ClaySurface>
+
+              <div className="mt-4 space-y-2.5">
+                {[
+                  { name: "Mathématiques", value: "16,4", tint: "var(--chart-1)" },
+                  { name: "Français", value: "14,8", tint: "var(--chart-4)" },
+                  { name: "Anglais", value: "17,2", tint: "var(--chart-2)" },
+                ].map((row) => (
+                  <ClaySurface key={row.name} depth="sm" className="flex items-center gap-3 px-4 py-3">
+                    <span
+                      aria-hidden
+                      className="size-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: `color-mix(in oklab, ${row.tint} 80%, var(--card))` }}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">
+                      {row.name}
+                    </span>
+                    <span className="text-sm font-bold tabular-nums">{row.value}</span>
+                  </ClaySurface>
+                ))}
+              </div>
+
+              <ClayWell className="mt-4 flex items-center gap-3 px-4 py-3">
+                <WifiOff className="size-4 text-muted-foreground" aria-hidden />
+                <span className="text-xs font-medium text-muted-foreground">
+                  Mode hors connexion : dernières données affichées
+                </span>
+              </ClayWell>
+            </ClaySurface>
+          </motion.div>
         </div>
-        <p className="text-center text-muted-foreground py-6 text-sm mt-2">
-          Check progress on your project page.
-        </p>
-        
+      </section>
+
+      {/* Features */}
+      <section id="fonctionnalites" className="px-4 pt-24 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <ClaySectionTitle className="mb-8">Tout ce qu'il faut, rien de plus</ClaySectionTitle>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-80px" }}
+                variants={fadeUp}
+                transition={{ ...SPRING, delay: index * 0.05 }}
+              >
+                <ClaySurface depth="md" pressable tint={feature.tint} className="h-full p-6">
+                  <span
+                    className="clay-sm flex size-12 items-center justify-center rounded-2xl"
+                    style={{
+                      backgroundColor: `color-mix(in oklab, ${feature.tint} 30%, var(--card))`,
+                    }}
+                  >
+                    <feature.icon className="size-6" aria-hidden />
+                  </span>
+                  <h3 className="mt-4 text-lg font-bold tracking-tight">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {feature.body}
+                  </p>
+                </ClaySurface>
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </section>
+
+      {/* How it works */}
+      <section id="comment" className="px-4 pt-24 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <ClaySectionTitle className="mb-8">Trois étapes, trente secondes</ClaySectionTitle>
+          <div className="grid gap-5 md:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <motion.div
+                key={step.number}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-80px" }}
+                variants={fadeUp}
+                transition={{ ...SPRING, delay: index * 0.08 }}
+              >
+                <ClaySurface depth="lg" className="h-full p-7">
+                  <span
+                    className="clay-inset inline-flex size-14 items-center justify-center rounded-3xl text-xl font-black tabular-nums"
+                    aria-hidden
+                  >
+                    {step.number}
+                  </span>
+                  <h3 className="mt-5 text-xl font-bold tracking-tight">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+                </ClaySurface>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Security */}
+      <section id="securite" className="px-4 pt-24 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={fadeUp}
+            transition={SPRING}
+          >
+            <ClaySurface depth="lg" tint="var(--accent)" className="overflow-hidden p-8 sm:p-12">
+              <div className="max-w-2xl">
+                <ClayPill tint="var(--accent)" className="mb-4">
+                  <ShieldCheck className="size-3.5" aria-hidden />
+                  Privacy by design
+                </ClayPill>
+                <h2 className="text-3xl font-black tracking-tighter sm:text-4xl">
+                  Tes données restent sur ton téléphone.
+                </h2>
+                <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                  On ne contourne jamais une authentification, un CAPTCHA ou une mesure de
+                  sécurité de PRONOTE. On ne reverse-engineer que les mécanismes
+                  légitimement accessibles, et tes identifiants ne sont jamais envoyés
+                  vers un serveur qui nous appartient.
+                </p>
+              </div>
+
+              <div className="mt-8 grid gap-5 md:grid-cols-3">
+                {SECURITY.map((item, index) => (
+                  <motion.div
+                    key={item.title}
+                    initial="hidden"
+                    whileInView="show"
+                    viewport={{ once: true }}
+                    variants={fadeUp}
+                    transition={{ ...SPRING, delay: index * 0.06 }}
+                  >
+                    <ClaySurface depth="sm" className="h-full p-5">
+                      <item.icon className="size-6" aria-hidden />
+                      <h3 className="mt-3 text-base font-bold tracking-tight">{item.title}</h3>
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                        {item.body}
+                      </p>
+                    </ClaySurface>
+                  </motion.div>
+                ))}
+              </div>
+
+              <p className="mt-8 rounded-2xl bg-card/60 px-5 py-4 text-xs leading-relaxed text-muted-foreground">
+                Tous les établissements n'ont pas la même configuration : URL différente,
+                configuration ENT, CAPTCHA ou SSO. L'application reconnaît ces cas et
+                t'explique clairement quoi faire au lieu d'échouer silencieusement.
+              </p>
+            </ClaySurface>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="px-4 pb-20 pt-24 sm:px-6">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          transition={SPRING}
+          className="mx-auto max-w-3xl text-center"
+        >
+          <ClaySurface depth="lg" tint="var(--primary)" className="p-10 sm:p-14">
+            <h2 className="text-3xl font-black tracking-tighter sm:text-4xl">
+              Prêt à ne plus ouvrir PRONOTE en entier ?
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
+              Connecte ton compte, ta moyenne apparaît. Le reste suit tout seul.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <ClayButton
+                size="lg"
+                onClick={() => navigate(primaryTarget)}
+                icon={<ArrowRight className="size-5" />}
+              >
+                {primaryLabel}
+              </ClayButton>
+              <ClayButton
+                size="lg"
+                variant="secondary"
+                onClick={() => navigate("/auth")}
+                icon={<Lock className="size-5" />}
+              >
+                Se connecter
+              </ClayButton>
+            </div>
+            <p className="mt-6 text-xs text-muted-foreground">
+              Tes identifiants restent sur ton appareil. Toujours.
+            </p>
+          </ClaySurface>
+        </motion.div>
+      </section>
+
+      <footer className="px-4 pb-10 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
+          <p>Clay Notes — projet open source de suivi PRONOTE.</p>
+          <p>Non affilié à Index Éducation. Respecte les conditions d'utilisation de PRONOTE.</p>
+        </div>
+      </footer>
+    </div>
   );
 }

@@ -5,20 +5,34 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
+import { ThemeProvider } from "@/lib/theme-provider";
+import { PronoteRoot } from "@/lib/pronote/store";
 import "./index.css";
 
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const AppLayout = lazy(() => import("./pages/app/AppLayout.tsx"));
+const Home = lazy(() => import("./pages/app/Home.tsx"));
+const Subjects = lazy(() => import("./pages/app/Subjects.tsx"));
+const SubjectDetails = lazy(() => import("./pages/app/SubjectDetails.tsx"));
+const Grades = lazy(() => import("./pages/app/Grades.tsx"));
+const History = lazy(() => import("./pages/app/History.tsx"));
+const Settings = lazy(() => import("./pages/app/Settings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="clay-sm flex items-center gap-3 rounded-3xl px-6 py-4">
+        <span className="size-2.5 animate-pulse rounded-full bg-primary" />
+        <span className="text-sm font-semibold tracking-tight text-muted-foreground">
+          Chargement…
+        </span>
+      </div>
     </div>
   );
 }
@@ -60,14 +74,14 @@ class RootErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+        <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
           <div className="max-w-lg text-center">
             <p className="text-sm font-semibold">Preview runtime error</p>
             <p className="mt-2 text-xs text-muted-foreground break-words">
               {this.state.message}
             </p>
             {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
+              <pre className="mt-3 max-h-40 overflow-auto rounded border border-border/60 p-2 text-left text-[10px] leading-4 text-muted-foreground/80">
                 {this.state.stack}
               </pre>
             )}
@@ -80,8 +94,6 @@ class RootErrorBoundary extends React.Component<
 }
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-
 
 function RouteSyncer() {
   const location = useLocation();
@@ -106,37 +118,62 @@ function RouteSyncer() {
   return null;
 }
 
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route
-                path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-        <Toaster />
-      </ConvexAuthProvider>
+      <ThemeProvider>
+        <ConvexAuthProvider client={convex}>
+          <BrowserRouter>
+            <RouteSyncer />
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/auth" element={<AuthPage redirectAfterAuth="/app" />} />
+                <Route
+                  path="/onboarding"
+                  element={
+                    <RequireAuth
+                      title="Connecte ton compte PRONOTE"
+                      description="Ton espace local de suivi est protégé : connecte-toi pour lier ton compte PRONOTE."
+                      redirectImmediately
+                    >
+                      <PronoteRoot>
+                        <Onboarding />
+                      </PronoteRoot>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/app"
+                  element={
+                    <RequireAuth
+                      title="Connecte-toi pour voir tes notes"
+                      description="Ta moyenne, tes notes et tes matières vivent dans ton espace personnel."
+                    >
+                      <PronoteRoot>
+                        <AppLayout />
+                      </PronoteRoot>
+                    </RequireAuth>
+                  }
+                >
+                  <Route index element={<Home />} />
+                  <Route path="subjects" element={<Subjects />} />
+                  <Route path="subjects/:subjectId" element={<SubjectDetails />} />
+                  <Route path="grades" element={<Grades />} />
+                  <Route path="history" element={<History />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
+                <Route path="/dashboard" element={<Navigate to="/app" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+          <Toaster />
+        </ConvexAuthProvider>
+      </ThemeProvider>
     </RootErrorBoundary>
   </StrictMode>,
 );
