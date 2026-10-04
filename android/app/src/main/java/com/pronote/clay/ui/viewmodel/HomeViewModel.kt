@@ -32,12 +32,17 @@ sealed interface HomeUiState {
         val refreshing: Boolean,
     ) : HomeUiState
 
-    data class Offline(val snapshot: SchoolSnapshot?, val average: AverageSummary?) : HomeUiState
+    data class Offline(
+        val snapshot: SchoolSnapshot?,
+        val average: AverageSummary?,
+        val subjects: List<SubjectRow> = emptyList(),
+    ) : HomeUiState
 
     data class Error(
         val message: String,
         val hint: String?,
         val snapshot: SchoolSnapshot?,
+        val subjects: List<SubjectRow> = emptyList(),
     ) : HomeUiState
 }
 
@@ -67,6 +72,9 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     val online: StateFlow<Boolean> = _online.asStateFlow()
 
     private var sessionValid = false
+
+    /** Human label of the connector strategy, shown in the settings sheet. */
+    val connectorLabel: String get() = container.dataSource.strategy
 
     init {
         viewModelScope.launch {
@@ -133,8 +141,9 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                 val cached = container.getCachedData.execute(accountId)
                 _state.value = HomeUiState.Error(
                     message = result.error,
-                    hint = PronoteError.NetworkUnavailable.hint,
+                    hint = result.errorHint ?: PronoteError.NetworkUnavailable.hint,
                     snapshot = cached,
+                    subjects = container.getSubjectRows.execute(cached),
                 )
             }
             else -> setRefreshing(false)
@@ -188,7 +197,11 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
         _state.value = when {
             snapshot == null -> HomeUiState.Unauthenticated
-            !isOnline -> HomeUiState.Offline(snapshot, container.calculateGeneralAverage.execute(snapshot))
+            !isOnline -> HomeUiState.Offline(
+                snapshot = snapshot,
+                average = container.calculateGeneralAverage.execute(snapshot),
+                subjects = container.getSubjectRows.execute(snapshot),
+            )
             else -> buildSuccess(snapshot, refreshing = false)
         }
     }

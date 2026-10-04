@@ -30,6 +30,7 @@ class SyncManager(
         val nextAverage: Double? = null,
         val skipped: SkipReason? = null,
         val error: String? = null,
+        val errorHint: String? = null,
     )
 
     enum class SkipReason { OFFLINE, RECENT, BUSY }
@@ -75,6 +76,7 @@ class SyncManager(
                     previousAverage = previousAverage,
                     nextAverage = previousAverage,
                     error = result.error.userMessage,
+                    errorHint = result.error.hint,
                 )
             }
             is PronoteResult.Success -> {

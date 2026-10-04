@@ -113,7 +113,8 @@ object AverageCalculator {
         return String.format(java.util.Locale.FRANCE, "%.${decimals}f/%s", value, trim(maxValue))
     }
 
-    private fun trim(value: Double): String =
+    /** Formats a coefficient like 2 or 1,5 (French decimal). */
+    fun trim(value: Double): String =
         if (value == Math.floor(value)) value.toInt().toString()
         else String.format(java.util.Locale.FRANCE, "%.1f", value)
 }
