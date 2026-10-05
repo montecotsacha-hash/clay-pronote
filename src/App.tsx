@@ -9,22 +9,22 @@ const delay = (ms: number): CSSProperties => ({ "--d": `${ms}ms` }) as CSSProper
 const features = [
   {
     title: "Hors ligne d'abord",
-    body: "Tes notes restent lisibles sans réseau. L'application synchronise en arrière-plan dès que la connexion revient.",
+    body: "Consulte tes dernières notes même sans réseau. Si l'option est activée, Ardoise tente une synchronisation périodique lorsque tu es connecté.",
     color: "#6fc7b8",
   },
   {
     title: "Notifications locales",
-    body: "Une nouvelle note ou une moyenne qui bouge : l'alerte est générée sur ton téléphone, pas sur un serveur.",
+    body: "Après une synchronisation en arrière-plan, Ardoise peut t'alerter localement si une nouvelle note ou une variation de moyenne est détectée. Android peut demander l'autorisation d'afficher les notifications.",
     color: "#e8c36b",
   },
   {
     title: "Moyennes fiables",
-    body: "Coefficients, notes sur 10 et « non significatif » : tout est calculé correctement, et la moyenne cachée est reconstruite.",
+    body: "Retrouve les notes et moyennes visibles dans Pronote. Si l'établissement ne fournit pas de moyenne générale, Ardoise en propose un calcul local à partir des données disponibles.",
     color: "#e59ac4",
   },
   {
     title: "100 % privé",
-    body: "Identifiants chiffrés par le Keystore Android. Aucune donnée scolaire ne transite par un tiers.",
+    body: "Tes identifiants sont envoyés directement au serveur Pronote de ton établissement, sans serveur intermédiaire Ardoise. Le jeton de session est conservé chiffré sur l'appareil.",
     color: "#7fb3e8",
   },
 ];
@@ -33,7 +33,7 @@ const steps = [
   {
     n: "1",
     title: "Télécharge l'APK",
-    body: "Touche le bouton de téléchargement depuis ton téléphone Android.",
+    body: "Télécharge le fichier sur ton téléphone Android depuis le bouton ci-dessous.",
   },
   {
     n: "2",
@@ -43,7 +43,7 @@ const steps = [
   {
     n: "3",
     title: "Connecte-toi",
-    body: "Les identifiants de démonstration sont préremplis : un appui sur « Se connecter » et c'est parti.",
+    body: "Saisis l'adresse Pronote de ton établissement, puis tes propres identifiants élève. Les accès via un ENT ne sont pas pris en charge.",
   },
 ];
 
@@ -73,16 +73,16 @@ export default function App() {
         className="reveal mx-auto max-w-5xl px-5 pt-10 pb-16 text-center sm:pt-16"
         style={delay(80)}
       >
-        <span className="clay-chip">Version 1.1.0 · Android 7.0 et plus · 12 Mo</span>
+        <span className="clay-chip">Version 1.2.0 · Android 7.0 et plus · environ 12 Mo</span>
         <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
           Tes notes, enfin{" "}
           <span className="text-[#9b7be0]">lisibles</span>.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-[#6b5f87]">
           <strong className="font-extrabold">Ardoise</strong> est l'application
-          mobile qui suit tes notes et ta moyenne Pronote — hors ligne, en
-          notifications locales, sans jamais envoyer tes identifiants à un
-          serveur.
+          mobile qui suit tes notes et ta moyenne Pronote — avec un accès hors
+          ligne à tes dernières données et une connexion directe au serveur de
+          ton établissement.
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
@@ -97,7 +97,7 @@ export default function App() {
           </a>
         </div>
         <p className="mt-4 text-sm text-[#6b5f87]">
-          Fichier signé · environ 12 Mo · aucune donnée collectée
+          APK signé · environ 12 Mo · aucun serveur intermédiaire Ardoise
         </p>
       </section>
 
@@ -164,9 +164,10 @@ export default function App() {
           </div>
           <p className="mt-6 text-center text-sm text-[#6b5f87]">
             L'application nécessite Android 7.0 (Nougat) ou une version plus
-            récente. Le fichier est signé avec une clé de débogage : Android
-            affiche donc un avertissement de sécurité, ce qui est normal pour
-            une application distribuée hors magasin.
+            récente. Comme pour toute installation hors Play Store, Android te
+            demandera d'autoriser l'installation depuis ton navigateur. Ardoise
+            se connecte directement au serveur Pronote de ton établissement ;
+            les accès via un ENT ne sont pas pris en charge.
           </p>
         </div>
       </section>
@@ -178,8 +179,9 @@ export default function App() {
           <p className="mt-2 leading-relaxed">
             Application indépendante, non affiliée à Index-Éducation. « Pronote »
             est une marque de son éditeur ; Ardoise est un lecteur indépendant.
-            Tes identifiants restent chiffrés sur ton appareil : aucun compte,
-            aucun serveur intermédiaire.
+            Tes identifiants sont transmis directement au serveur Pronote de
+            ton établissement pour la connexion ; le jeton de session est
+            chiffré sur ton appareil. Aucun serveur intermédiaire Ardoise.
           </p>
         </div>
         <p className="mt-6">Fait avec 💜 pour les lycéens</p>

@@ -25,6 +25,8 @@ class SecureCredentialsManager(context: Context) {
         val username: String,
         val token: String? = null,
         val expiresAt: Long = 0L,
+        /** Stable app/device identifier required to resume Pawnote mobile sessions. */
+        val deviceUuid: String? = null,
         /** Only kept when the connector cannot issue a durable token. */
         val password: String? = null,
     )
@@ -59,6 +61,7 @@ class SecureCredentialsManager(context: Context) {
             .putString(key(accountId, "user"), credentials.username)
             .putString(key(accountId, "token"), credentials.token)
             .putLong(key(accountId, "expires"), credentials.expiresAt)
+            .putString(key(accountId, "device_uuid"), credentials.deviceUuid)
             .putString(key(accountId, "pass"), credentials.password)
             .apply()
     }
@@ -71,6 +74,7 @@ class SecureCredentialsManager(context: Context) {
             username = prefs.getString(key(accountId, "user"), "") ?: "",
             token = prefs.getString(key(accountId, "token"), null),
             expiresAt = prefs.getLong(key(accountId, "expires"), 0L),
+            deviceUuid = prefs.getString(key(accountId, "device_uuid"), null),
             password = prefs.getString(key(accountId, "pass"), null),
         )
     }
@@ -82,6 +86,7 @@ class SecureCredentialsManager(context: Context) {
             .remove(key(accountId, "user"))
             .remove(key(accountId, "token"))
             .remove(key(accountId, "expires"))
+            .remove(key(accountId, "device_uuid"))
             .remove(key(accountId, "pass"))
             .apply()
     }

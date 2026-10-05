@@ -1,8 +1,9 @@
 package com.pronote.clay.data.remote
 
+import com.pronote.clay.core.Logger
 import com.pronote.clay.core.PronoteError
 import com.pronote.clay.core.PronoteResult
-import com.pronote.clay.core.Logger
+import kotlinx.coroutines.CancellationException
 
 /**
  * Remote DTOs — the wire shape of a Pronote connector.
@@ -63,6 +64,8 @@ data class PronoteAuthResult(
     val expiresAt: Long,
     val schoolName: String,
     val payload: PronoteRawPayload,
+    /** Stable per-account identifier required to refresh a mobile token. */
+    val deviceUuid: String? = null,
 )
 
 /**
@@ -85,9 +88,19 @@ interface PronoteDataSource {
         password: String,
     ): PronoteResult<PronoteAuthResult>
 
-    suspend fun restoreSession(token: String, schoolUrl: String): PronoteResult<PronoteAuthResult>
+    suspend fun restoreSession(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+    ): PronoteResult<PronoteAuthResult>
 
-    suspend fun fetchAll(token: String, schoolUrl: String): PronoteResult<PronoteRawPayload>
+    suspend fun fetchAll(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+    ): PronoteResult<PronoteRawPayload>
 
     suspend fun logout(token: String)
 }
@@ -108,23 +121,39 @@ class PronoteCompatibilityLayer(private val source: PronoteDataSource) {
     ): PronoteResult<PronoteAuthResult> =
         try {
             source.authenticate(schoolUrl, username, password)
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Throwable) {
             PronoteResult.Failure(normalize(error))
         }
 
-    suspend fun restoreSession(token: String, schoolUrl: String): PronoteResult<PronoteAuthResult> =
+    suspend fun restoreSession(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+    ): PronoteResult<PronoteAuthResult> =
         try {
-            source.restoreSession(token, schoolUrl)
+            source.restoreSession(token, schoolUrl, username, deviceUuid)
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Throwable) {
             PronoteResult.Failure(normalize(error))
         }
 
-    suspend fun fetchAll(token: String, schoolUrl: String): PronoteResult<PronoteRawPayload> =
+    suspend fun fetchAll(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+    ): PronoteResult<PronoteRawPayload> =
         try {
-            when (val result = source.fetchAll(token, schoolUrl)) {
+            when (val result = source.fetchAll(token, schoolUrl, username, deviceUuid)) {
                 is PronoteResult.Success -> PronoteResult.Success(assertPayload(result.value))
                 is PronoteResult.Failure -> result
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Throwable) {
             PronoteResult.Failure(normalize(error))
         }
@@ -133,6 +162,8 @@ class PronoteCompatibilityLayer(private val source: PronoteDataSource) {
         // Logging out must never fail loudly: the local session is cleared anyway.
         try {
             source.logout(token)
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Throwable) {
             Logger.warn("Connector logout failed")
         }

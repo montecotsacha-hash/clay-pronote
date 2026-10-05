@@ -17,8 +17,8 @@ const GRADLE_APK = join(
 );
 const APK_PATH = join(ROOT, "public", "Ardoise.apk");
 
-const md5 = (path: string) =>
-  createHash("md5").update(readFileSync(path)).digest("hex");
+const sha256 = (path: string) =>
+  createHash("sha256").update(readFileSync(path)).digest("hex");
 
 describe("APK Ardoise téléchargeable depuis le site", () => {
   it("est présent dans public/ et pèse plus d'un mégaoctet", () => {
@@ -39,7 +39,7 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
 
   it("est le build release courant, pas une copie obsolète", () => {
     expect(existsSync(GRADLE_APK)).toBe(true);
-    expect(md5(APK_PATH)).toBe(md5(GRADLE_APK));
+    expect(sha256(APK_PATH)).toBe(sha256(GRADLE_APK));
   });
 
   it("porte le nouveau nom, racine comme ancien chemin", () => {
@@ -47,13 +47,23 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
     const legacyCopy = join(ROOT, "public", "Pronote.apk");
     expect(existsSync(rootCopy)).toBe(true);
     expect(existsSync(legacyCopy)).toBe(true);
-    expect(md5(legacyCopy)).toBe(md5(APK_PATH));
+    expect(sha256(rootCopy)).toBe(sha256(APK_PATH));
+    expect(sha256(join(ROOT, "Pronote.apk"))).toBe(sha256(APK_PATH));
+    expect(sha256(legacyCopy)).toBe(sha256(APK_PATH));
   });
 
   it("ne contient aucune entité HTML brute visible dans du texte JSX", () => {
     const app = readFileSync(join(ROOT, "src", "App.tsx"), "utf8");
     expect(app).not.toContain("&nbsp;");
     expect(app).not.toContain("&amp;");
+  });
+
+  it("n'affiche pas de faux accès de démonstration ni de fausse promesse de confidentialité", () => {
+    const app = readFileSync(join(ROOT, "src", "App.tsx"), "utf8");
+    expect(app).not.toMatch(/identifiants de démonstration|sans jamais envoyer tes identifiants|aucune donnée collectée|clé de débogage/i);
+    expect(app).toContain("Version 1.2.0");
+    expect(app).toContain("directement au serveur Pronote");
+    expect(app).toContain("Les accès via un ENT ne sont pas pris en charge");
   });
 
   it("est lié au téléchargement depuis la page d'accueil", () => {

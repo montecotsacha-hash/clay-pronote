@@ -44,16 +44,33 @@ class SessionManager(
         val stored = vault.load(accountId) ?: return PronoteResult.Failure(PronoteError.SessionExpired)
 
         stored.token?.let { token ->
-            return when (val result = connector.restoreSession(token, stored.schoolUrl)) {
-                is PronoteResult.Success -> PronoteResult.Success(
-                    PronoteSession(
-                        token = result.value.token,
-                        expiresAt = result.value.expiresAt,
-                        schoolUrl = stored.schoolUrl,
-                        schoolName = result.value.schoolName,
-                        connected = true,
-                    ),
-                )
+            return when (val result = connector.restoreSession(
+                token = token,
+                schoolUrl = stored.schoolUrl,
+                username = stored.username,
+                deviceUuid = stored.deviceUuid.orEmpty(),
+            )) {
+                is PronoteResult.Success -> {
+                    vault.save(
+                        accountId,
+                        stored.copy(
+                            token = result.value.token,
+                            schoolName = result.value.schoolName,
+                            expiresAt = result.value.expiresAt,
+                            deviceUuid = result.value.deviceUuid ?: stored.deviceUuid,
+                            password = null,
+                        ),
+                    )
+                    PronoteResult.Success(
+                        PronoteSession(
+                            token = result.value.token,
+                            expiresAt = result.value.expiresAt,
+                            schoolUrl = stored.schoolUrl,
+                            schoolName = result.value.schoolName,
+                            connected = true,
+                        ),
+                    )
+                }
                 is PronoteResult.Failure -> result
             }
         }
@@ -62,15 +79,27 @@ class SessionManager(
             return when (
                 val result = connector.authenticate(stored.schoolUrl, stored.username, password)
             ) {
-                is PronoteResult.Success -> PronoteResult.Success(
-                    PronoteSession(
-                        token = result.value.token,
-                        expiresAt = result.value.expiresAt,
-                        schoolUrl = stored.schoolUrl,
-                        schoolName = result.value.schoolName,
-                        connected = true,
-                    ),
-                )
+                is PronoteResult.Success -> {
+                    vault.save(
+                        accountId,
+                        stored.copy(
+                            token = result.value.token,
+                            schoolName = result.value.schoolName,
+                            expiresAt = result.value.expiresAt,
+                            deviceUuid = result.value.deviceUuid ?: stored.deviceUuid,
+                            password = null,
+                        ),
+                    )
+                    PronoteResult.Success(
+                        PronoteSession(
+                            token = result.value.token,
+                            expiresAt = result.value.expiresAt,
+                            schoolUrl = stored.schoolUrl,
+                            schoolName = result.value.schoolName,
+                            connected = true,
+                        ),
+                    )
+                }
                 is PronoteResult.Failure -> result
             }
         }

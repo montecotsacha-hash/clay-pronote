@@ -19,7 +19,7 @@ import java.util.Locale
  */
 class FakePronoteDataSource : PronoteDataSource {
 
-    override val strategy: String = "DirectPronoteStrategy"
+    override val strategy: String = "Données de démonstration"
 
     private fun isoDaysAgo(days: Int): String {
         val calendar = Calendar.getInstance()
@@ -113,6 +113,7 @@ class FakePronoteDataSource : PronoteDataSource {
                 expiresAt = System.currentTimeMillis() + 6 * 60 * 60 * 1000,
                 schoolName = payload.student.etablissement ?: "Établissement",
                 payload = payload,
+                deviceUuid = "fake-device",
             ),
         )
     }
@@ -120,6 +121,8 @@ class FakePronoteDataSource : PronoteDataSource {
     override suspend fun restoreSession(
         token: String,
         schoolUrl: String,
+        username: String,
+        deviceUuid: String,
     ): PronoteResult<PronoteAuthResult> {
         delay(300)
         if (!token.startsWith("fake-token-")) return PronoteResult.Failure(PronoteError.SessionExpired)
@@ -131,6 +134,7 @@ class FakePronoteDataSource : PronoteDataSource {
                 expiresAt = System.currentTimeMillis() + 6 * 60 * 60 * 1000,
                 schoolName = payload.student.etablissement ?: "Établissement",
                 payload = payload,
+                deviceUuid = "fake-device",
             ),
         )
     }
@@ -138,6 +142,8 @@ class FakePronoteDataSource : PronoteDataSource {
     override suspend fun fetchAll(
         token: String,
         schoolUrl: String,
+        username: String,
+        deviceUuid: String,
     ): PronoteResult<PronoteRawPayload> {
         delay(420)
         if (token.isBlank()) return PronoteResult.Failure(PronoteError.SessionExpired)

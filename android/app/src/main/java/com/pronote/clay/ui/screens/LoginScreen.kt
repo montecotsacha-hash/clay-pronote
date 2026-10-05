@@ -54,17 +54,17 @@ import com.pronote.clay.ui.viewmodel.HomeViewModel
 /**
  * LoginScreen — clay-styled credentials form.
  *
- * The demo connector is prefilled so the app is explorable in one tap; a real
- * connector drops in behind PronoteDataSource without touching this screen.
+ * Credentials are entered by the student and sent directly to the selected
+ * school's Pronote server; no demo credentials are sent to a real account.
  */
 @Composable
 fun LoginScreen(viewModel: HomeViewModel) {
     val state by viewModel.state.collectAsState()
     val error = state as? HomeUiState.Error
 
-    var schoolUrl by remember { mutableStateOf("https://0123456a.index-education.net/pronote/") }
-    var username by remember { mutableStateOf("demo") }
-    var password by remember { mutableStateOf("demo1234") }
+    var schoolUrl by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
 
     Column(
@@ -144,7 +144,15 @@ fun LoginScreen(viewModel: HomeViewModel) {
         Spacer(Modifier.height(22.dp))
         ClayButton(
             text = "Se connecter",
-            onClick = { viewModel.login(schoolUrl.trim(), username.trim(), password) {} },
+            onClick = {
+                if (schoolUrl.trim().startsWith("https://", ignoreCase = true) &&
+                    username.isNotBlank() && password.isNotBlank()
+                ) {
+                    viewModel.login(schoolUrl.trim(), username.trim(), password) {}
+                }
+            },
+            enabled = schoolUrl.trim().startsWith("https://", ignoreCase = true) &&
+                username.isNotBlank() && password.isNotBlank(),
         )
 
         Spacer(Modifier.height(26.dp))
@@ -152,13 +160,14 @@ fun LoginScreen(viewModel: HomeViewModel) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
         ) {
-            ClayPill(text = "Mode démonstration", tint = MaterialTheme.colorScheme.tertiary)
+            ClayPill(text = "Connexion directe à Pronote", tint = MaterialTheme.colorScheme.tertiary)
         }
         Spacer(Modifier.height(10.dp))
         Text(
-            "Les identifiants sont préremplis pour explorer l'app tout de suite. " +
-                "Ils restent chiffrés sur l'appareil (Keystore Android) et ne sont " +
-                "jamais envoyés à un serveur tiers.",
+            "Saisis l'adresse de ton espace élève, puis tes identifiants Pronote. " +
+                "Ils sont transmis directement au serveur de ton établissement, pas à un serveur Ardoise. " +
+                "Seul le jeton de session est conservé chiffré sur cet appareil. " +
+                "Les connexions via un ENT ne sont pas prises en charge.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

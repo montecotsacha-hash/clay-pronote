@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
@@ -7,7 +8,7 @@ const OUT = "screenshots";
 const EXPECTED = {
   title: "Tes notes, enfin lisibles.",
   paragraph:
-    "Ardoise est l'application mobile qui suit tes notes et ta moyenne Pronote — hors ligne, en notifications locales, sans jamais envoyer tes identifiants à un serveur.",
+    "Ardoise est l'application mobile qui suit tes notes et ta moyenne Pronote — avec un accès hors ligne à tes dernières données et une connexion directe au serveur de ton établissement.",
 };
 
 const viewports = [
@@ -61,21 +62,35 @@ for (const vp of viewports) {
 
   // Le lien de téléchargement doit vraiment pointer vers l'APK servi.
   const apk = await context.request.get(new URL("/Ardoise.apk", PREVIEW).toString());
+  const apkBody = await apk.body();
 
   await page.screenshot({ path: `${OUT}/${vp.name}.png`, fullPage: true });
 
   report.viewports.push({
     ...vp,
-    ...data,
-    apkStatus: apk.status(),
-    apkBytes: Number(apk.headers()["content-length"] ?? 0),
+    ...data,    apkStatus: apk.status(),
+    apkBytes: apkBody.byteLength,
+    apkHeader: [...apkBody.subarray(0, 4)],
     titleMatches: data.title === EXPECTED.title,
     paragraphMatches: data.paragraph === EXPECTED.paragraph,
     entityLeak: data.visibleEntityText,
   });
 
+  const result = report.viewports.at(-1);
+  assert.equal(result.titleMatches, true, `${vp.name}: unexpected hero title`);
+  assert.equal(result.paragraphMatches, true, `${vp.name}: unexpected hero copy`);
+  assert.equal(result.entityLeak, false, `${vp.name}: raw HTML entity is visible`);
+  assert.equal(result.overflowX, false, `${vp.name}: horizontal overflow`);
+  assert.equal(result.htmlLang, "fr", `${vp.name}: document language is not French`);
+  assert.equal(result.downloadHref, "/Ardoise.apk", `${vp.name}: wrong APK link`);
+  assert.equal(result.apkStatus, 200, `${vp.name}: APK download failed`);
+  assert.ok(result.apkBytes > 1_000_000, `${vp.name}: APK response is unexpectedly small`);
+  assert.deepEqual(result.apkHeader, [0x50, 0x4b, 0x03, 0x04], `${vp.name}: download is not an APK archive`);
+
   await context.close();
 }
 
 await browser.close();
+assert.deepEqual(report.consoleErrors, [], "Browser console errors occurred");
+assert.deepEqual(report.pageErrors, [], "Browser runtime errors occurred");
 console.log(JSON.stringify(report, null, 2));

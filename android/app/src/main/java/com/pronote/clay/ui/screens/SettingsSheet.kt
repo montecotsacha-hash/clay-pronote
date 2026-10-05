@@ -58,7 +58,7 @@ fun SettingsSheet(viewModel: HomeViewModel, onDismiss: () -> Unit) {
             Section("Synchronisation")
             ToggleRow(
                 title = "Synchronisation automatique",
-                description = "Actualise tes notes en arrière-plan quand tu es en ligne.",
+                description = "Synchronise périodiquement tes notes quand l'appareil est connecté à Internet.",
                 checked = preferences.autoSync,
                 onChange = { viewModel.updatePreferences(preferences.copy(autoSync = it)) },
             )
@@ -66,7 +66,7 @@ fun SettingsSheet(viewModel: HomeViewModel, onDismiss: () -> Unit) {
             Section("Notifications")
             ToggleRow(
                 title = "Nouvelles notes",
-                description = "Une notification locale dès qu'une note est ajoutée.",
+                description = "Une alerte locale après une synchronisation en arrière-plan.",
                 checked = preferences.notifyNewGrades,
                 onChange = { viewModel.updatePreferences(preferences.copy(notifyNewGrades = it)) },
             )

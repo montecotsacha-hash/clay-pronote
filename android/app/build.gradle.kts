@@ -12,8 +12,8 @@ android {
         applicationId = "com.pronote.clay"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
     }
 
     buildTypes {
@@ -65,6 +65,11 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+
+    // Direct on-device connector to Pronote (GPL-3.0-or-later).
+    implementation("ink.literate:pawnote-android:1.0.0")
+    implementation("io.ktor:ktor-client-core:2.3.12")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
 
     // Keystore-backed encrypted storage for the Pronote credentials.
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

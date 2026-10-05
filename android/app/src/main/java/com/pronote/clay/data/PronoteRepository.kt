@@ -80,6 +80,9 @@ class PronoteRepositoryImpl(
                 username = username,
                 token = auth.token.takeIf { it.isNotEmpty() },
                 expiresAt = auth.expiresAt,
+                deviceUuid = auth.deviceUuid,
+                // Never persist an account password when the connector issues
+                // its own encrypted mobile refresh token.
                 password = password.takeIf { auth.token.isEmpty() },
             ),
         )
@@ -95,7 +98,12 @@ class PronoteRepositoryImpl(
         val stored = sessions.load(accountId)
             ?: return PronoteResult.Failure(PronoteError.SessionExpired)
 
-        val result = connector.fetchAll(stored.token.orEmpty(), stored.schoolUrl)
+        val result = connector.fetchAll(
+            token = stored.token.orEmpty(),
+            schoolUrl = stored.schoolUrl,
+            username = stored.username,
+            deviceUuid = stored.deviceUuid.orEmpty(),
+        )
         if (result is PronoteResult.Failure) return result
 
         val snapshot = toSnapshot((result as PronoteResult.Success).value)
