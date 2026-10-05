@@ -49,7 +49,7 @@ const steps = [
 
 export default function App() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" translate="no">
       {/* En-tête */}
       <header
         className="reveal mx-auto flex max-w-5xl items-center justify-between px-5 py-6"
