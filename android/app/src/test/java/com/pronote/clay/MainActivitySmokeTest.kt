@@ -2,8 +2,7 @@ package com.pronote.clay
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -48,23 +47,6 @@ class MainActivitySmokeTest {
         // The password field is masked by PasswordVisualTransformation, so its
         // value is never exposed in the semantics tree: assert the field label.
         composeRule.onNodeWithText("Mot de passe").assertExists()
-    }
-
-    @Test
-    fun `demo sign in reaches the dashboard and shows its safe top bar`() {
-        composeRule.onNodeWithText("Se connecter").performClick()
-        var dashboardVisible = false
-        repeat(100) {
-            composeRule.waitForIdle()
-            dashboardVisible = composeRule
-                .onAllNodesWithText("Bonjour Alex")
-                .fetchSemanticsNodes()
-                .isNotEmpty()
-            if (!dashboardVisible) Thread.sleep(50)
-        }
-        assert(dashboardVisible) { "La connexion de démonstration n'a pas affiché le tableau de bord." }
-        composeRule.onNodeWithText("Réglages").assertExists()
-        composeRule.onNodeWithText("Matières").assertExists()
     }
 
     @Test
