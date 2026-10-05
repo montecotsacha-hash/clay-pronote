@@ -96,6 +96,16 @@ export default defineConfig({
     // Bind to all interfaces so the browser runtime's server-ready event fires.
     host: true,
     port: 5173,
+    // The Freebuff preview renders this app inside an iframe. Firefox then
+    // refuses the document (NS_ERROR_DOM_COEP_FAILED) unless the served page
+    // declares a cross-origin isolation policy compatible with that parent
+    // frame. "credentialless" keeps the preview working while still isolating
+    // the page, and CORP lets the parent frame embed our own assets.
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "credentialless",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    },
     // Keep HMR on, but disable full-screen error overlay
     hmr: {
       overlay: false,
