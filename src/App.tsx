@@ -19,11 +19,11 @@ const features = [
   },
   {
     title: "Moyennes fiables",
-    body: "Coefficients, notes sur 10 et «&nbsp;non significatif&nbsp;»&nbsp;: tout est calculé correctement, et la moyenne cachée est reconstruite.",
+    body: "Coefficients, notes sur 10 et « non significatif » : tout est calculé correctement, et la moyenne cachée est reconstruite.",
     color: "#e59ac4",
   },
   {
-    title: "100&nbsp;% privé",
+    title: "100 % privé",
     body: "Identifiants chiffrés par le Keystore Android. Aucune donnée scolaire ne transite par un tiers.",
     color: "#7fb3e8",
   },
@@ -38,12 +38,12 @@ const steps = [
   {
     n: "2",
     title: "Autorise l'installation",
-    body: "Android affiche «&nbsp;installer une application inconnue&nbsp;»&nbsp;: accepte pour ton navigateur, une seule fois.",
+    body: "Android affiche « installer une application inconnue » : accepte pour ton navigateur, une seule fois.",
   },
   {
     n: "3",
     title: "Connecte-toi",
-    body: "Les identifiants de démonstration sont préremplis&nbsp;: un appui sur «&nbsp;Se connecter&nbsp;» et c'est parti.",
+    body: "Les identifiants de démonstration sont préremplis : un appui sur « Se connecter » et c'est parti.",
   },
 ];
 
@@ -73,7 +73,7 @@ export default function App() {
         className="reveal mx-auto max-w-5xl px-5 pt-10 pb-16 text-center sm:pt-16"
         style={delay(80)}
       >
-        <span className="clay-chip">Version 1.0.0 · Android 7.0 et plus · 18 Mo</span>
+        <span className="clay-chip">Version 1.1.0 · Android 7.0 et plus · 12 Mo</span>
         <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
           Tes notes, enfin{" "}
           <span className="text-[#9b7be0]">lisibles</span>.
@@ -97,7 +97,7 @@ export default function App() {
           </a>
         </div>
         <p className="mt-4 text-sm text-[#6b5f87]">
-          Fichier signé · environ 18 Mo · aucune donnée collectée
+          Fichier signé · environ 12 Mo · aucune donnée collectée
         </p>
       </section>
 
@@ -176,8 +176,8 @@ export default function App() {
         <div className="clay-card mx-auto max-w-3xl p-6">
           <p className="font-semibold">Ardoise — application non officielle</p>
           <p className="mt-2 leading-relaxed">
-            Application indépendante, non affiliée à Index-Éducation. «&nbsp;Pronote&nbsp;»
-            est une marque de son éditeur&nbsp;; Ardoise est un lecteur indépendant.
+            Application indépendante, non affiliée à Index-Éducation. « Pronote »
+            est une marque de son éditeur ; Ardoise est un lecteur indépendant.
             Tes identifiants restent chiffrés sur ton appareil : aucun compte,
             aucun serveur intermédiaire.
           </p>

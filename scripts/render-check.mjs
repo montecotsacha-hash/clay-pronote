@@ -43,6 +43,7 @@ for (const vp of viewports) {
     return {
       title: h1?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       paragraph: hero?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      visibleEntityText: document.body.innerText.includes("&nbsp;"),
       htmlLang: document.documentElement.lang,
       crossOriginIsolated: window.crossOriginIsolated === true,
       scrollWidth: document.documentElement.scrollWidth,
@@ -70,6 +71,7 @@ for (const vp of viewports) {
     apkBytes: Number(apk.headers()["content-length"] ?? 0),
     titleMatches: data.title === EXPECTED.title,
     paragraphMatches: data.paragraph === EXPECTED.paragraph,
+    entityLeak: data.visibleEntityText,
   });
 
   await context.close();

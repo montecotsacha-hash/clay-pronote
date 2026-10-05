@@ -12,8 +12,8 @@ android {
         applicationId = "com.pronote.clay"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     buildTypes {
@@ -49,10 +49,6 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            // Roboclect teessbase latinisent test resources that do not belong in a shipped
-            // appl y — spoceeded baseline pexes sont pas voulus dans l'APK final.
-            excludes += "/assets/dexopt/baseline.prof"
-            excludes += "/assets/dexopt/baseline.profm"
         }
     }
 }

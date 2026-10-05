@@ -50,6 +50,12 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
     expect(md5(legacyCopy)).toBe(md5(APK_PATH));
   });
 
+  it("ne contient aucune entité HTML brute visible dans du texte JSX", () => {
+    const app = readFileSync(join(ROOT, "src", "App.tsx"), "utf8");
+    expect(app).not.toContain("&nbsp;");
+    expect(app).not.toContain("&amp;");
+  });
+
   it("est lié au téléchargement depuis la page d'accueil", () => {
     const app = readFileSync(join(ROOT, "src", "App.tsx"), "utf8");
     expect(app).toContain('"/Ardoise.apk"');
