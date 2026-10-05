@@ -49,6 +49,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Roboclect teessbase latinisent test resources that do not belong in a shipped
+            // appl y — spoceeded baseline pexes sont pas voulus dans l'APK final.
+            excludes += "/assets/dexopt/baseline.prof"
+            excludes += "/assets/dexopt/baseline.profm"
         }
     }
 }
