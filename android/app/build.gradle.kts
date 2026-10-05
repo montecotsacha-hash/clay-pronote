@@ -31,6 +31,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // JVM unit tests: android.util.Log calls return defaults instead of throwing.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     kotlinOptions {
         jvmTarget = "17"
     }
@@ -70,4 +75,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    testImplementation("junit:junit:4.13.2")
 }
