@@ -182,7 +182,7 @@ private fun HomeTopBar(
                 listOfNotNull(
                     snapshot?.student?.className?.takeIf { it.isNotBlank() },
                     snapshot?.student?.schoolName?.takeIf { it.isNotBlank() },
-                ).joinToString(" • ").ifBlank { "Pronote" },
+                ).joinToString(" • ").ifBlank { "Ardoise" },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

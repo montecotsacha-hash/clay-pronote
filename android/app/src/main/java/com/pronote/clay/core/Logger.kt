@@ -9,7 +9,7 @@ import android.util.Log
  * Forbidden: password, token, session, personal data, named grades.
  */
 object Logger {
-    private const val TAG = "Pronote"
+    private const val TAG = "Ardoise"
     private const val REDACTED = "[redacted]"
 
     private val SECRET_KEYS = listOf(

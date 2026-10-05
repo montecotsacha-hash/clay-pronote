@@ -1,4 +1,5 @@
-const APK_URL = "/Pronote.apk";
+const APK_URL = "/Ardoise.apk";
+const APK_NAME = "Ardoise.apk";
 
 const features = [
   {
@@ -52,35 +53,36 @@ export default function App() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-6">
         <div className="flex items-center gap-3">
           <span className="clay-dot" />
-          <span className="text-xl font-extrabold tracking-tight">Pronote</span>
+          <span className="text-xl font-extrabold tracking-tight">Ardoise</span>
         </div>
-        <a href={APK_URL} download="Pronote.apk" className="clay-btn !px-5 !py-2.5 text-sm">
+        <a href={APK_URL} download={APK_NAME} className="clay-btn !px-5 !py-2.5 text-sm">
           Télécharger
         </a>
       </header>
 
       {/* Hero */}
       <section className="mx-auto max-w-5xl px-5 pt-10 pb-16 text-center sm:pt-16">
-        <span className="clay-chip">v1.0.0 · Android 7.0+ · 17 Mo</span>
+        <span className="clay-chip">v1.0.0 · Android 7.0+ · 18 Mo</span>
         <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
           Tes notes, enfin{" "}
           <span className="text-[#9b7be0]">lisibles</span>.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-[#6b5f87]">
-          L'app mobile qui suit tes notes et ta moyenne Pronote — hors ligne,
-          en notifications locales, sans jamais envoyer tes identifiants à un
+          <strong className="font-extrabold">Ardoise</strong> est l'app mobile
+          qui suit tes notes et ta moyenne Pronote — hors ligne, en
+          notifications locales, sans jamais envoyer tes identifiants à un
           serveur.
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a href={APK_URL} download="Pronote.apk" className="clay-btn w-full sm:w-auto">
-            ⬇️ Télécharger Pronote.apk
+          <a href={APK_URL} download={APK_NAME} className="clay-btn w-full sm:w-auto">
+            ⬇️ Télécharger {APK_NAME}
           </a>
           <a href="#installer" className="clay-btn clay-btn--soft w-full sm:w-auto">
             Comment l'installer
           </a>
         </div>
         <p className="mt-4 text-sm text-[#6b5f87]">
-          Fichier signé, ~17 Mo · aucune donnée collectée
+          Fichier signé, ~18 Mo · aucune donnée collectée
         </p>
       </section>
 
@@ -127,7 +129,7 @@ export default function App() {
             ))}
           </div>
           <div className="mt-9 flex justify-center">
-            <a href={APK_URL} download="Pronote.apk" className="clay-btn">
+            <a href={APK_URL} download={APK_NAME} className="clay-btn">
               ⬇️ Télécharger maintenant
             </a>
           </div>
@@ -136,11 +138,12 @@ export default function App() {
 
       <footer className="mx-auto max-w-5xl px-5 pb-12 text-center text-sm text-[#6b5f87]">
         <div className="clay-card mx-auto max-w-3xl p-6">
-          <p className="font-semibold">Pronote (app non officielle)</p>
+          <p className="font-semibold">Ardoise — application non officielle</p>
           <p className="mt-2 leading-relaxed">
-            Application indépendante, non affiliée à Index-Éducation. Tes
-            identifiants restent chiffrés sur ton appareil — aucun compte, aucun
-            serveur intermédiaire.
+            Application indépendante, non affiliée à Index-Éducation. « Pronote »
+            est une marque de son éditeur ; Ardoise est un lecteur indépendant.
+            Tes identifiants restent chiffrés sur ton appareil — aucun compte,
+            aucun serveur intermédiaire.
           </p>
         </div>
         <p className="mt-6">Fait avec 💜 pour les lycéens</p>

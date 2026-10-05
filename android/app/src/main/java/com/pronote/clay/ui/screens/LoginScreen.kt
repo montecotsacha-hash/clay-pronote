@@ -92,7 +92,7 @@ fun LoginScreen(viewModel: HomeViewModel) {
                 )
             }
             Spacer(Modifier.height(18.dp))
-            Text("Pronote", style = MaterialTheme.typography.headlineLarge)
+            Text("Ardoise", style = MaterialTheme.typography.headlineLarge)
             Text(
                 "Tes notes, hors ligne, en un clin d'œil.",
                 style = MaterialTheme.typography.bodyLarge,

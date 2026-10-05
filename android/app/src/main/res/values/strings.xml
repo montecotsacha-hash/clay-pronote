@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Pronote</string>
+    <string name="app_name">Ardoise</string>
+    <string name="app_tagline">Tes notes, hors ligne</string>
 </resources>
