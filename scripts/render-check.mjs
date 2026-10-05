@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
-const URL = process.env.PREVIEW_URL ?? "http://localhost:5173/";
+const PREVIEW = process.env.PREVIEW_URL ?? "http://localhost:5173/";
 const OUT = "screenshots";
 
 const EXPECTED = {
@@ -18,7 +18,7 @@ const viewports = [
 mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({ args: ["--no-sandbox"] });
-const report = { url: URL, viewports: [], consoleErrors: [], pageErrors: [] };
+const report = { url: PREVIEW, viewports: [], consoleErrors: [], pageErrors: [] };
 
 for (const vp of viewports) {
   const context = await browser.newContext({
@@ -32,7 +32,7 @@ for (const vp of viewports) {
   });
   page.on("pageerror", (err) => report.pageErrors.push(`[${vp.name}] ${err.message}`));
 
-  await page.goto(URL, { waitUntil: "networkidle" });
+  await page.goto(PREVIEW, { waitUntil: "networkidle" });
   await page.waitForTimeout(400);
 
   const data = await page.evaluate(() => {
@@ -59,7 +59,7 @@ for (const vp of viewports) {
   });
 
   // Le lien de téléchargement doit vraiment pointer vers l'APK servi.
-  const apk = await context.request.get(new URL("/Ardoise.apk", URL).toString());
+  const apk = await context.request.get(new URL("/Ardoise.apk", PREVIEW).toString());
 
   await page.screenshot({ path: `${OUT}/${vp.name}.png`, fullPage: true });
 

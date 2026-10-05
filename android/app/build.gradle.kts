@@ -34,6 +34,8 @@ android {
     // JVM unit tests: android.util.Log calls return defaults instead of throwing.
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Robolectric needs the merged resources to inflate the real theme.
+        unitTests.isIncludeAndroidResources = true
     }
 
     kotlinOptions {
@@ -77,4 +79,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
+    // Real Android runtime on the JVM: launches MainActivity and renders the
+    // Compose tree, which is the closest thing to an emulator in this CI.
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
