@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.pronote.clay"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.pronote.clay"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
     }
@@ -65,8 +65,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-
-    implementation("androidx.navigation:navigation-compose:2.8.3")
 
     // Keystore-backed encrypted storage for the Pronote credentials.
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

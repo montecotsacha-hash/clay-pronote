@@ -6,11 +6,14 @@ import { join } from "node:path";
 /**
  * The download deliverable: the APK served by the site must exist, be a valid
  * APK archive, be branded Ardoise and never be a stale build.
+ *
+ * The shipped artefact is the RELEASE variant (not debuggable, no Compose
+ * tooling inside), so the test compares against that output.
  */
 const ROOT = process.cwd();
 const GRADLE_APK = join(
   ROOT,
-  "android/app/build/outputs/apk/debug/app-debug.apk",
+  "android/app/build/outputs/apk/release/app-release.apk",
 );
 const APK_PATH = join(ROOT, "public", "Ardoise.apk");
 
@@ -34,7 +37,7 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
     expect(listing).toContain("classes.dex");
   });
 
-  it("est le build courant, pas une copie obsolète", () => {
+  it("est le build release courant, pas une copie obsolète", () => {
     expect(existsSync(GRADLE_APK)).toBe(true);
     expect(md5(APK_PATH)).toBe(md5(GRADLE_APK));
   });
