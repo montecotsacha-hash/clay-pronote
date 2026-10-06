@@ -18,6 +18,7 @@ class PreferencesStore(context: Context) {
         darkTheme = if (prefs.contains("darkTheme")) prefs.getBoolean("darkTheme", false) else null,
         dynamicColor = prefs.getBoolean("dynamicColor", true),
         biometricLock = prefs.getBoolean("biometricLock", false),
+        displayName = prefs.getString("displayName", null)?.takeIf { it.isNotBlank() },
     )
 
     fun save(preferences: Preferences) {
@@ -27,6 +28,7 @@ class PreferencesStore(context: Context) {
             .putBoolean("notifyAverageChange", preferences.notifyAverageChange)
             .putBoolean("dynamicColor", preferences.dynamicColor)
             .putBoolean("biometricLock", preferences.biometricLock)
+            .putString("displayName", preferences.displayName?.takeIf { it.isNotBlank() })
             .apply {
                 preferences.darkTheme?.let { putBoolean("darkTheme", it) }
                 if (preferences.darkTheme == null) remove("darkTheme")

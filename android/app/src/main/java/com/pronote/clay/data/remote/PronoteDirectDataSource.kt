@@ -812,9 +812,10 @@ private class PronoteSession private constructor(
 
         val generalAverage = response.optJSONObject("moyGenerale")?.optString("V")
             ?.replace(',', '.')?.toDoubleOrNull()
+        // Pronote expose "NOM Prénom" : le prénom est après le dernier espace.
         val fullName = userResource?.name.orEmpty().trim()
-        val firstName = fullName.substringBeforeLast(' ', fullName)
-        val lastName = fullName.substringAfterLast(' ', "").takeIf { fullName.contains(' ') } ?: ""
+        val firstName = if (fullName.contains(' ')) fullName.substringAfterLast(' ') else ""
+        val lastName = if (fullName.contains(' ')) fullName.substringBeforeLast(' ') else fullName
 
         return PronoteRawPayload(
             student = PronoteStudentDto(

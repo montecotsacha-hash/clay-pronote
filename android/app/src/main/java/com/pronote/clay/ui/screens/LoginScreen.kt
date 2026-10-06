@@ -62,9 +62,7 @@ fun LoginScreen(viewModel: HomeViewModel) {
     val state by viewModel.state.collectAsState()
     val error = state as? HomeUiState.Error
 
-    var schoolUrl by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val draft by viewModel.loginDraft.collectAsState()
     var showPassword by remember { mutableStateOf(false) }
 
     Column(
@@ -105,23 +103,23 @@ fun LoginScreen(viewModel: HomeViewModel) {
         Spacer(Modifier.height(14.dp))
 
         ClayField(
-            value = schoolUrl,
-            onValueChange = { schoolUrl = it },
+            value = draft.schoolUrl,
+            onValueChange = { viewModel.updateLoginSchoolUrl(it) },
             label = "Adresse Pronote de l'établissement",
             leading = { Icon(Icons.Rounded.School, contentDescription = null, Modifier.size(18.dp)) },
             keyboardType = KeyboardType.Uri,
         )
         Spacer(Modifier.height(12.dp))
         ClayField(
-            value = username,
-            onValueChange = { username = it },
+            value = draft.username,
+            onValueChange = { viewModel.updateLoginUsername(it) },
             label = "Identifiant",
             leading = { Icon(Icons.Rounded.Person, contentDescription = null, Modifier.size(18.dp)) },
         )
         Spacer(Modifier.height(12.dp))
         ClayField(
-            value = password,
-            onValueChange = { password = it },
+            value = draft.password,
+            onValueChange = { viewModel.updateLoginPassword(it) },
             label = "Mot de passe",
             leading = { Icon(Icons.Rounded.Lock, contentDescription = null, Modifier.size(18.dp)) },
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -145,14 +143,15 @@ fun LoginScreen(viewModel: HomeViewModel) {
         ClayButton(
             text = "Se connecter",
             onClick = {
-                if (schoolUrl.trim().startsWith("https://", ignoreCase = true) &&
-                    username.isNotBlank() && password.isNotBlank()
+                val url = draft.schoolUrl.trim()
+                if (url.startsWith("https://", ignoreCase = true) &&
+                    draft.username.isNotBlank() && draft.password.isNotBlank()
                 ) {
-                    viewModel.login(schoolUrl.trim(), username.trim(), password) {}
+                    viewModel.login(url, draft.username.trim(), draft.password) {}
                 }
             },
-            enabled = schoolUrl.trim().startsWith("https://", ignoreCase = true) &&
-                username.isNotBlank() && password.isNotBlank(),
+            enabled = draft.schoolUrl.trim().startsWith("https://", ignoreCase = true) &&
+                draft.username.isNotBlank() && draft.password.isNotBlank(),
         )
 
         Spacer(Modifier.height(26.dp))

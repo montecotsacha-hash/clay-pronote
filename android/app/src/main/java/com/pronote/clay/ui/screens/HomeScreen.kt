@@ -176,9 +176,15 @@ private fun HomeTopBar(
             .padding(top = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val preferences by viewModel.preferences.collectAsState()
         Column(Modifier.weight(1f)) {
+            val realFirstName = snapshot?.student?.firstName?.trim()
+                // "Élève" is Mappers' placeholder when Pronote sends no first name.
+                ?.takeIf { it.isNotBlank() && it != "Élève" }
+            val configuredName = preferences.displayName?.trim()?.takeIf { it.isNotBlank() }
+            val greeting = listOfNotNull(realFirstName, configuredName).firstOrNull()
             Text(
-                "Bonjour ${snapshot?.student?.firstName ?: ""}".trim() + " 👋",
+                if (greeting != null) "Bonjour $greeting" else "Bonjour",
                 style = MaterialTheme.typography.headlineLarge,
             )
             Text(

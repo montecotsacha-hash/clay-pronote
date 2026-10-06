@@ -16,6 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -99,6 +100,21 @@ fun SettingsSheet(viewModel: HomeViewModel, onDismiss: () -> Unit) {
                 description = "Reprends les couleurs de ton fond d'écran (Android 12+).",
                 checked = preferences.dynamicColor,
                 onChange = { viewModel.updatePreferences(preferences.copy(dynamicColor = it)) },
+            )
+            Spacer(Modifier.height(10.dp))
+            ClaySettingRow(
+                title = "Prénom à afficher",
+                description = "Utilisé après « Bonjour » si Pronote ne fournit pas de prénom.",
+            ) {}
+            OutlinedTextField(
+                value = preferences.displayName.orEmpty(),
+                onValueChange = {
+                    viewModel.updatePreferences(preferences.copy(displayName = it.trim().ifBlank { null }))
+                },
+                label = { Text("Ton prénom") },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(Modifier.height(20.dp))

@@ -46,6 +46,17 @@ sealed interface HomeUiState {
     ) : HomeUiState
 }
 
+/**
+ * Login form draft. It lives in the ViewModel because the login screen is
+ * unmounted while the attempt runs: a failed attempt must never wipe what the
+ * user typed — only the offending value is cleared.
+ */
+data class LoginDraft(
+    val schoolUrl: String = "",
+    val username: String = "",
+    val password: String = "",
+)
+
 /** Transient events the UI must act on (notifications, toasts). */
 sealed interface HomeEvent {
     data class Notify(val notification: PendingNotification) : HomeEvent
@@ -70,6 +81,21 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
 
     private val _online = MutableStateFlow(container.networkMonitor.isOnline())
     val online: StateFlow<Boolean> = _online.asStateFlow()
+
+    private val _loginDraft = MutableStateFlow(LoginDraft())
+    val loginDraft: StateFlow<LoginDraft> = _loginDraft.asStateFlow()
+
+    fun updateLoginSchoolUrl(value: String) {
+        _loginDraft.value = _loginDraft.value.copy(schoolUrl = value)
+    }
+
+    fun updateLoginUsername(value: String) {
+        _loginDraft.value = _loginDraft.value.copy(username = value)
+    }
+
+    fun updateLoginPassword(value: String) {
+        _loginDraft.value = _loginDraft.value.copy(password = value)
+    }
 
     private var sessionValid = false
 
@@ -240,6 +266,15 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                     onSuccess()
                 }
                 is PronoteResult.Failure -> {
+                    // Only clear the value that caused the failure; the other
+                    // entries (address, identifiants) stay filled in.
+                    _loginDraft.value = when (result.error) {
+                        is PronoteError.InvalidPronoteUrl ->
+                            _loginDraft.value.copy(schoolUrl = "")
+                        is PronoteError.InvalidCredentials ->
+                            _loginDraft.value.copy(password = "")
+                        else -> _loginDraft.value
+                    }
                     _state.value = HomeUiState.Error(
                         message = result.error.userMessage,
                         hint = result.error.hint,
