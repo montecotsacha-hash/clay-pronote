@@ -45,6 +45,16 @@ const hexToBytes = (hex) => forge.util.createBuffer(forge.util.binary.hex.decode
 
 async function main() {
   const base = cleanUrl("https://demo.index-education.net/pronote/eleve.html");
+  // Jar de cookies minimal (requests.Session le fait ; le serveur lie la session à un cookie).
+  const cookieJar = new Map();
+  const eatCookies = (res) => {
+    for (const c of res.headers.getSetCookie?.() ?? []) {
+      const [pair] = c.split(";");
+      const eq = pair.indexOf("=");
+      if (eq > 0) cookieJar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+    }
+  };
+  const cookieHeader = () => [...cookieJar].map(([k, v]) => `${k}=${v}`).join("; ");
   const pageRes = await fetch(`${base}/mobile.eleve.html?fd=1&login=true&bydlg=A6ABB224-12DD-4E31-AD3E-8A39A1C2C335`, { headers: { "User-Agent": PRONOTE_UA } });
   eatCookies(pageRes);
   const html = await pageRes.text();
@@ -74,18 +84,8 @@ async function main() {
     return c.output.getBytes();
   };
 
-  // Jar de cookies minimal (requests.Session le fait ; le serveur lie la session à un cookie).
-  const cookieJar = new Map();
-  const eatCookies = (res) => {
-    for (const c of res.headers.getSetCookie?.() ?? []) {
-      const [pair] = c.split(";");
-      const eq = pair.indexOf("=");
-      if (eq > 0) cookieJar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
-    }
-  };
-  const cookieHeader = () => [...cookieJar].map(([k, v]) => `${k}=${v}`).join("; ");
-
   let requestNumber = 1;
+  let puRaw;
   const post = async (name, dataSecObject) => {
     const zeroIV = forge.util.createBuffer().fillWithByte(0, 16).getBytes();
     const no = enc(String(requestNumber), sessionKey, requestNumber === 1 ? zeroIV : realIV);
@@ -97,6 +97,8 @@ async function main() {
     const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "User-Agent": PRONOTE_UA, ...(cookieJar.size ? { Cookie: cookieHeader() } : {}) }, body: JSON.stringify({ session: parseInt(start.h), no, id: name, dataSec }) });
     eatCookies(res);
     const raw = await res.text();
+    puRaw = raw;
+    console.log(`[DIAG] ${name}: HTTP ${res.status} | ${raw.slice(0, 110).replace(/\n/g, " ")}`);
     if (raw.includes("La page a expir")) throw new Error("SessionExpired (page expirée)");
     if (raw.includes("Votre adresse IP ")) throw new Error("SuspendedIP");
     if (raw.includes("Vous avez d")) throw new Error("RateLimited");
@@ -146,18 +148,27 @@ async function main() {
   console.log("cle déchiffrée (brute):", JSON.stringify(cleText.slice(0, 80)));
   let keyString;
   if (/^(\d+(,\d+)*)$/.test(cleText)) {
+    // Les codes SONT les octets de la clé (pronotepy _enBytes / forge createBuffer latin-1).
     keyString = cleText.split(",").map((n) => String.fromCharCode(parseInt(n))).join("");
-    console.log("  format: codes ASCII séparés par virgules →", keyString.length, "caractères");
+    sessionKey = md5Bytes(keyString);
+    console.log("  format: octets bruts (", keyString.length, "octets ) → md5 ✓");
   } else {
     keyString = cleText;
-    console.log("  format: chaîne brute →", keyString.length, "caractères");
+    sessionKey = md5Bytes(forge.util.encodeUtf8(keyString));
+    console.log("  format: chaîne brute → md5 ✓");
   }
-  sessionKey = md5Bytes(forge.util.encodeUtf8(keyString));
-  console.log("clé de session établie (md5) ✓");
+  console.log("clé de session établie ✓");
 
   // --- Ordre 7 : ParametresUtilisateur (première requête authentifiée) ---
-  const pu = await post("ParametresUtilisateur", {});
-  const pud = pu.data || pu.donnees;
+  console.log("[DIAG] cookies envoyés:", cookieHeader() || "(aucun)");
+  try {
+    const pu = await post("ParametresUtilisateur", {});
+    var pud = pu.data || pu.donnees;
+  } catch (e) {
+    console.log("[DIAG] échec PU:", e.message);
+    if (puRaw) console.log("[DIAG] corps:", String(puRaw).slice(0, 300));
+    process.exit(1);
+  }
   const ressource = pud.ressource;
   console.log("ParametresUtilisateur OK —", ressource?.L, "|", ressource?.Etablissement?.V?.L, "| classe:", ressource?.classeDEleve?.L ?? "(n/a)");
   const onglet0 = ressource?.listeOngletsPourPeriodes?.V?.[0];
