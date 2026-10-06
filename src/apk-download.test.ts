@@ -61,7 +61,7 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
   it("n'affiche pas de faux accès de démonstration ni de fausse promesse de confidentialité", () => {
     const app = readFileSync(join(ROOT, "src", "App.tsx"), "utf8");
     expect(app).not.toMatch(/identifiants de démonstration|sans jamais envoyer tes identifiants|aucune donnée collectée|clé de débogage/i);
-    expect(app).toContain("Version 1.2.0");
+    expect(app).toContain("Version 1.2.1");
     expect(app).toContain("directement au serveur Pronote");
     expect(app).toContain("Les accès via un ENT ne sont pas pris en charge");
   });

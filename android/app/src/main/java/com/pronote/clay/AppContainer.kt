@@ -7,7 +7,7 @@ import com.pronote.clay.data.PronoteRepositoryImpl
 import com.pronote.clay.data.SessionManager
 import com.pronote.clay.data.local.LocalDataSource
 import com.pronote.clay.data.local.PreferencesStore
-import com.pronote.clay.data.remote.PawnotePronoteDataSource
+import com.pronote.clay.data.remote.PronoteDirectDataSource
 import com.pronote.clay.data.remote.PronoteCompatibilityLayer
 import com.pronote.clay.data.remote.PronoteDataSource
 import com.pronote.clay.data.security.SecureCredentialsManager
@@ -35,7 +35,7 @@ class AppContainer(context: Context) {
 
     private val appContext = context.applicationContext
 
-    val dataSource: PronoteDataSource = PawnotePronoteDataSource()
+    val dataSource: PronoteDataSource = PronoteDirectDataSource()
 
     val networkMonitor = NetworkMonitor(appContext)
 
