@@ -163,6 +163,28 @@ fun HomeScreen(viewModel: HomeViewModel) {
     }
 }
 
+/**
+ * Name shown after "Bonjour" — a plain function so the priority rule stays
+ * testable outside Compose.
+ *
+ * The name typed in the settings always wins: it is the only one the user can
+ * change, while Pronote's payload varies from one school to the next (missing
+ * first name, surname only, "NOM PRÉNOM"…).
+ */
+fun greetingName(
+    configured: String?,
+    pronoteFirstName: String?,
+    pronoteLastName: String?,
+): String? {
+    configured?.trim()?.takeIf { it.isNotBlank() }?.let { return it }
+
+    return pronoteFirstName?.trim()
+        // "Élève" is Mappers' placeholder when Pronote sends no first name.
+        ?.takeIf { it.isNotBlank() && it != "Élève" }
+        // A "first name" identical to the surname means Pronote never sent one.
+        ?.takeUnless { pronoteLastName != null && it.equals(pronoteLastName.trim(), true) }
+}
+
 @Composable
 private fun HomeTopBar(
     snapshot: com.pronote.clay.domain.SchoolSnapshot?,
@@ -178,11 +200,11 @@ private fun HomeTopBar(
     ) {
         val preferences by viewModel.preferences.collectAsState()
         Column(Modifier.weight(1f)) {
-            val realFirstName = snapshot?.student?.firstName?.trim()
-                // "Élève" is Mappers' placeholder when Pronote sends no first name.
-                ?.takeIf { it.isNotBlank() && it != "Élève" }
-            val configuredName = preferences.displayName?.trim()?.takeIf { it.isNotBlank() }
-            val greeting = listOfNotNull(realFirstName, configuredName).firstOrNull()
+            val greeting = greetingName(
+                configured = preferences.displayName,
+                pronoteFirstName = snapshot?.student?.firstName,
+                pronoteLastName = snapshot?.student?.lastName,
+            )
             Text(
                 if (greeting != null) "Bonjour $greeting" else "Bonjour",
                 style = MaterialTheme.typography.headlineLarge,

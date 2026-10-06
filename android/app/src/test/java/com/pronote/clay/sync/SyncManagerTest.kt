@@ -13,6 +13,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * JVM unit tests for the sync guards and the error propagation the UI relies on.
@@ -31,14 +34,18 @@ class SyncManagerTest {
         fetchedAt = 0L,
     )
 
-    private fun grade(id: String) = Grade(
+    /** A date [days] ago, ISO formatted like Pronote grades (yyyy-MM-dd). */
+    private fun isoDaysAgo(days: Long): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(System.currentTimeMillis() - days * 86_400_000L))
+
+    private fun grade(id: String, date: String = isoDaysAgo(0)) = Grade(
         id = id,
         subjectId = "maths",
         title = "Devoir",
         value = 15.0,
         maxValue = 20.0,
         coefficient = 1.0,
-        date = "2026-01-10",
+        date = date,
     )
 
     private class FakeRepository(
@@ -134,6 +141,48 @@ class SyncManagerTest {
     @Test
     fun `does not report new grades on a first sync`() {
         assertEquals(emptyList<Grade>(), SyncManager.detectNewGrades(null, snapshot(grade("a"))))
+    }
+
+    @Test
+    fun `never announces a grade older than the cutoff`() {
+        val before = snapshot(grade("a"))
+        val after = snapshot(
+            grade("a"),
+            grade("month-old", date = isoDaysAgo(SyncManager.MAX_NOTIFY_AGE_DAYS + 30)),
+        )
+
+        assertEquals(emptyList<Grade>(), SyncManager.detectNewGrades(before, after))
+    }
+
+    @Test
+    fun `announces a grade that is recent enough`() {
+        val before = snapshot(grade("a"))
+        val after = snapshot(grade("a"), grade("fresh", date = isoDaysAgo(2)))
+
+        assertEquals(listOf("fresh"), SyncManager.detectNewGrades(before, after).map { it.id })
+    }
+
+    @Test
+    fun `announces the most recent grade first`() {
+        val before = snapshot(grade("a"))
+        val after = snapshot(
+            grade("a"),
+            grade("older", date = isoDaysAgo(4)),
+            grade("newer", date = isoDaysAgo(1)),
+        )
+
+        assertEquals(
+            listOf("newer", "older"),
+            SyncManager.detectNewGrades(before, after).map { it.id },
+        )
+    }
+
+    @Test
+    fun `treats a wholesale id change as a new baseline, not as new grades`() {
+        val before = snapshot(grade("a"), grade("b"), grade("c"), grade("d"), grade("e"))
+        val after = snapshot(grade("x"), grade("y"), grade("z"), grade("w"), grade("v"))
+
+        assertEquals(emptyList<Grade>(), SyncManager.detectNewGrades(before, after))
     }
 
     @Test

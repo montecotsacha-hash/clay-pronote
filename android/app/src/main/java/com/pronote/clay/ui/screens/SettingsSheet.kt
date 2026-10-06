@@ -104,7 +104,7 @@ fun SettingsSheet(viewModel: HomeViewModel, onDismiss: () -> Unit) {
             Spacer(Modifier.height(10.dp))
             ClaySettingRow(
                 title = "Prénom à afficher",
-                description = "Utilisé après « Bonjour » si Pronote ne fournit pas de prénom.",
+                description = "S'affiche après « Bonjour » et remplace le prénom Pronote. Laisse vide pour utiliser celui de Pronote.",
             ) {}
             OutlinedTextField(
                 value = preferences.displayName.orEmpty(),

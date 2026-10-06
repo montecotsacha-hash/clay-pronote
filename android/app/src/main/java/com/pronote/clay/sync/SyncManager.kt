@@ -7,6 +7,8 @@ import com.pronote.clay.domain.Grade
 import com.pronote.clay.domain.SchoolSnapshot
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * SyncManager — the WorkManager equivalent.
@@ -16,6 +18,7 @@ import kotlinx.coroutines.sync.withLock
  *  - never sync when offline
  *  - skip when the last sync is recent, unless the caller forces it
  *  - detect new grades and average changes after every successful sync
+ *  - only announce grades that are actually recent (see [detectNewGrades])
  */
 class SyncManager(
     private val repository: PronoteRepository,
@@ -104,11 +107,48 @@ class SyncManager(
         /** Minimum delay between two automatic syncs. */
         const val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L
 
-        /** Compare the previous grade list with the new one. */
+        /** A grade is announced only when it is at most this many days old. */
+        const val MAX_NOTIFY_AGE_DAYS = 14L
+
+        /** Below that many "new" grades a wholesale id change is not a baseline. */
+        private const val BASELINE_MIN_GRADES = 5
+
+        private const val DAY_MS = 24 * 60 * 60 * 1000L
+
+        /**
+         * Compare the previous grade list with the new one, keeping only the
+         * grades worth announcing:
+         *  - a wholesale id/period change (app update, new trimester) is a new
+         *    baseline, not a wave of new grades;
+         *  - a grade older than [MAX_NOTIFY_AGE_DAYS] is history, not news.
+         * The result is sorted so the most recent grade comes first.
+         */
         fun detectNewGrades(before: SchoolSnapshot?, after: SchoolSnapshot): List<Grade> {
             if (before == null) return emptyList()
             val known = before.grades.map { it.id }.toSet()
-            return after.grades.filter { it.id !in known }
+            val fresh = after.grades.filter { it.id !in known }
+            if (fresh.isEmpty()) return emptyList()
+            // A large majority of the snapshot suddenly looks new: the id scheme
+            // or the period changed, so treat it as a fresh baseline instead of
+            // waking the user up for grades they have already seen.
+            if (fresh.size >= BASELINE_MIN_GRADES && fresh.size > after.grades.size / 2) return emptyList()
+            return fresh
+                .filter { isRecentEnoughToNotify(it.date) }
+                .sortedByDescending { it.date }
+        }
+
+        /**
+         * A grade dated more than [MAX_NOTIFY_AGE_DAYS] ago is never announced:
+         * a late correction must not look like breaking news. An unparsable date
+         * is treated the same way — silence beats a wrong alert.
+         */
+        private fun isRecentEnoughToNotify(isoDate: String): Boolean {
+            val millis = try {
+                SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(isoDate)?.time
+            } catch (_: Exception) {
+                null
+            } ?: return false
+            return millis >= System.currentTimeMillis() - MAX_NOTIFY_AGE_DAYS * DAY_MS
         }
     }
 }

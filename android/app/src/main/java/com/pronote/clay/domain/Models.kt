@@ -84,6 +84,6 @@ data class Preferences(
     val darkTheme: Boolean? = null, // null = follow system
     val dynamicColor: Boolean = true,
     val biometricLock: Boolean = false,
-    /** Name shown after "Bonjour " when Pronote provides no first name. */
+    /** Name shown after "Bonjour "; takes priority over the Pronote first name. */
     val displayName: String? = null,
 )
