@@ -53,6 +53,13 @@ class SyncManagerTest {
         private val failure: PronoteError? = null,
     ) : PronoteRepository {
         var syncCount = 0
+        var restoreCount = 0
+
+        /** How many leading syncs fail with [failure] before one succeeds. */
+        var failuresBeforeSuccess = if (failure != null) Int.MAX_VALUE else 0
+
+        /** Session handed back by refreshSession — null means "beyond repair". */
+        var restoredSession: PronoteSession? = null
 
         override suspend fun login(
             accountId: String,
@@ -61,13 +68,19 @@ class SyncManagerTest {
             password: String,
         ): PronoteResult<PronoteSession> = PronoteResult.Failure(PronoteError.InvalidCredentials)
 
-        override suspend fun refreshSession(accountId: String): PronoteSession? = null
+        override suspend fun refreshSession(accountId: String): PronoteSession? {
+            restoreCount++
+            return restoredSession
+        }
 
         override fun getCachedSnapshot(accountId: String): SchoolSnapshot? = current
 
         override suspend fun sync(accountId: String): PronoteResult<SchoolSnapshot> {
             syncCount++
-            failure?.let { return PronoteResult.Failure(it) }
+            if (failure != null && failuresBeforeSuccess > 0) {
+                failuresBeforeSuccess--
+                return PronoteResult.Failure(failure)
+            }
             return PronoteResult.Success(current!!)
         }
 
@@ -75,6 +88,14 @@ class SyncManagerTest {
 
         override suspend fun deleteLocalData(accountId: String) = Unit
     }
+
+    private fun restorableSession() = PronoteSession(
+        token = "mobile-token",
+        expiresAt = Long.MAX_VALUE,
+        schoolUrl = "https://demo.index-education.net/pronote",
+        schoolName = "Lycée Jean Moulin",
+        connected = true,
+    )
 
     @Test
     fun `carries the real error hint to the UI`() = runBlocking {
@@ -91,6 +112,53 @@ class SyncManagerTest {
             "Reconnecte-toi pour repartir sur des données à jour.",
             result.errorHint,
         )
+    }
+
+    @Test
+    fun `recovers silently when the Pronote session has expired`() = runBlocking {
+        val repository = FakeRepository(snapshot(grade("a")), PronoteError.SessionExpired).apply {
+            failuresBeforeSuccess = 1
+            restoredSession = restorableSession()
+        }
+        val manager = SyncManager(repository) { true }
+
+        val result = manager.sync("acct")
+
+        assertTrue(result.ok)
+        assertNull(result.error)
+        // One silent reconnect, then the retried sync — no banner for the user.
+        assertEquals(1, repository.restoreCount)
+        assertEquals(2, repository.syncCount)
+    }
+
+    @Test
+    fun `gives up after a single reconnect attempt`() = runBlocking {
+        val repository = FakeRepository(snapshot(grade("a")), PronoteError.SessionExpired).apply {
+            restoredSession = restorableSession()
+        }
+        val manager = SyncManager(repository) { true }
+
+        val result = manager.sync("acct")
+
+        assertFalse(result.ok)
+        assertEquals("Ta session Pronote a expiré.", result.error)
+        assertEquals(1, repository.restoreCount)
+        assertEquals(2, repository.syncCount)
+    }
+
+    @Test
+    fun `does not retry other errors even when the session can be restored`() = runBlocking {
+        val repository = FakeRepository(snapshot(grade("a")), PronoteError.PronoteUnavailable).apply {
+            restoredSession = restorableSession()
+        }
+        val manager = SyncManager(repository) { true }
+
+        val result = manager.sync("acct")
+
+        assertFalse(result.ok)
+        assertEquals("Pronote ne répond pas pour le moment.", result.error)
+        assertEquals(0, repository.restoreCount)
+        assertEquals(1, repository.syncCount)
     }
 
     @Test

@@ -108,20 +108,28 @@ class PronoteDirectDataSource : PronoteDataSource {
         username: String,
         deviceUuid: String,
     ): PronoteResult<PronoteRawPayload> = withContext(Dispatchers.IO) {
-        val active = sessions[sessionKey(schoolUrl, username)]?.takeIf { it.refreshToken == token }
+        val key = sessionKey(schoolUrl, username)
+        val active = sessions[key]?.takeIf { it.refreshToken == token }
         if (active != null) {
             try {
-                PronoteResult.Success(active.session.readSnapshot())
+                return@withContext PronoteResult.Success(active.session.readSnapshot())
             } catch (error: CancellationException) {
                 throw error
+            } catch (error: SessionExpiredError) {
+                // La session Pronote est morte côté serveur (inactivité, ou
+                // connexion ouverte depuis un autre appareil) : on la jète et
+                // on retente une reconnexion silencieuse avec le jeton mobile.
+                // L'utilisateur ne doit voir « session expirée » que si le
+                // jeton lui-même ne marche plus.
+                Logger.warn("Session Pronote expirée : reconnexion avec le jeton")
+                sessions.remove(key, active)
             } catch (error: Throwable) {
-                PronoteResult.Failure(mapError(error))
+                return@withContext PronoteResult.Failure(mapError(error))
             }
-        } else {
-            when (val restored = connectWithToken(token, schoolUrl, username, deviceUuid)) {
-                is PronoteResult.Success -> PronoteResult.Success(restored.value.payload)
-                is PronoteResult.Failure -> restored
-            }
+        }
+        when (val restored = connectWithToken(token, schoolUrl, username, deviceUuid)) {
+            is PronoteResult.Success -> PronoteResult.Success(restored.value.payload)
+            is PronoteResult.Failure -> restored
         }
     }
 

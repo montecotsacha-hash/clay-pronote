@@ -1,6 +1,7 @@
 package com.pronote.clay.sync
 
 import com.pronote.clay.core.Logger
+import com.pronote.clay.core.PronoteError
 import com.pronote.clay.core.PronoteResult
 import com.pronote.clay.data.PronoteRepository
 import com.pronote.clay.domain.Grade
@@ -19,6 +20,7 @@ import java.util.Locale
  *  - skip when the last sync is recent, unless the caller forces it
  *  - detect new grades and average changes after every successful sync
  *  - only announce grades that are actually recent (see [detectNewGrades])
+ *  - never surface a session-expired error when a silent reconnect recovers it
  */
 class SyncManager(
     private val repository: PronoteRepository,
@@ -71,7 +73,19 @@ class SyncManager(
         val previousAverage = before?.generalAverage?.value
 
         Logger.info("Sync started")
-        return when (val result = repository.sync(accountId)) {
+        var result = repository.sync(accountId)
+
+        // Une session Pronote expirée se rétablit toute seule : on retente une
+        // fois après une reconnexion silencieuse, et on n'alerte l'utilisateur
+        // que si le problème persiste. Une seule tentative — jamais de boucle.
+        if (result is PronoteResult.Failure && result.error is PronoteError.SessionExpired &&
+            repository.refreshSession(accountId) != null
+        ) {
+            Logger.info("Session expirée : reconnexion puis nouvelle tentative")
+            result = repository.sync(accountId)
+        }
+
+        return when (result) {
             is PronoteResult.Failure -> {
                 Logger.warn("Sync failed")
                 SyncResult(
