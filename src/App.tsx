@@ -73,7 +73,7 @@ export default function App() {
         className="reveal mx-auto max-w-5xl px-5 pt-10 pb-16 text-center sm:pt-16"
         style={delay(80)}
       >
-        <span className="clay-chip">Version 1.2.3 · Android 7.0 et plus · environ 12 Mo</span>
+        <span className="clay-chip">Version 1.3.0 · Android 7.0 et plus · environ 12 Mo</span>
         <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
           Tes notes, enfin{" "}
           <span className="text-[#9b7be0]">lisibles</span>.
