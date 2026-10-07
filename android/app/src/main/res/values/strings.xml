@@ -2,4 +2,14 @@
 <resources>
     <string name="app_name">Ardoise</string>
     <string name="app_tagline">Tes notes, hors ligne</string>
+
+    <!-- Widgets d'accueil -->
+    <string name="widget_open_app">Ouvrir Ardoise</string>
+    <string name="widget_average_label">MOYENNE GÉNÉRALE</string>
+    <string name="widget_preview_value">14,6</string>
+    <string name="widget_preview_unit">/20</string>
+    <string name="widget_average_desc">Ta moyenne générale, en un coup d’œil.</string>
+    <string name="widget_curve_desc">L’évolution de ta moyenne générale.</string>
+    <string name="widget_duo_desc">Ta moyenne et sa courbe, côte à côte.</string>
+    <string name="widget_grade_desc">Ta dernière note reçue.</string>
 </resources>

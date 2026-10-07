@@ -117,6 +117,14 @@ fun SettingsSheet(viewModel: HomeViewModel, onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            Section("Sécurité")
+            ToggleRow(
+                title = "Verrouillage biométrique",
+                description = "Empreinte, visage ou code de l'appareil à chaque ouverture de l'app. Nécessite un verrou d'appareil configuré.",
+                checked = preferences.biometricLock,
+                onChange = { viewModel.updatePreferences(preferences.copy(biometricLock = it)) },
+            )
+
             Spacer(Modifier.height(20.dp))
             ClayDivider()
             Spacer(Modifier.height(20.dp))

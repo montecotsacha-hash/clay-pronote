@@ -47,6 +47,8 @@ class PronoteRepositoryImpl(
     private val connector: PronoteCompatibilityLayer,
     private val sessions: SessionManager,
     private val local: LocalDataSource,
+    /** Notified after every cache write so the widgets never show stale data. */
+    private val onSnapshotSaved: () -> Unit = {},
 ) : PronoteRepository {
 
     /** Cache-first: the caller renders this immediately, before any network. */
@@ -88,6 +90,7 @@ class PronoteRepositoryImpl(
         )
         local.saveSessionMeta(accountId, session)
         local.saveSnapshot(accountId, toSnapshot(auth.payload))
+        onSnapshotSaved()
         return PronoteResult.Success(session)
     }
 
@@ -108,6 +111,7 @@ class PronoteRepositoryImpl(
 
         val snapshot = toSnapshot((result as PronoteResult.Success).value)
         local.saveSnapshot(accountId, snapshot)
+        onSnapshotSaved()
         Logger.info("Grades updated")
         return PronoteResult.Success(snapshot)
     }

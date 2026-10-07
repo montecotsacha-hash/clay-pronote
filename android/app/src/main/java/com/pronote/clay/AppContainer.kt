@@ -46,7 +46,10 @@ class AppContainer(context: Context) {
     private val connector = PronoteCompatibilityLayer(dataSource)
     private val sessions = SessionManager(connector, vault)
 
-    val repository: PronoteRepository = PronoteRepositoryImpl(connector, sessions, local)
+    val repository: PronoteRepository = PronoteRepositoryImpl(connector, sessions, local) {
+        // Chaque nouvelle donnée est répercutée sur les widgets d'accueil.
+        com.pronote.clay.widgets.ArdoiseWidgetProvider.updateAllAsync(appContext)
+    }
 
     val syncManager = SyncManager(repository) { networkMonitor.isOnline() }
 
