@@ -28,6 +28,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Requise par les tests Compose Robolectric (createComposeRule). -->
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pronote" />
+
         <!-- Widgets d'accueil : quatre variantes, un même rendu dessiné. -->
         <receiver
             android:name=".widgets.AverageWidgetProvider"

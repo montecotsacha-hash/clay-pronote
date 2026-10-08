@@ -87,6 +87,8 @@ class SyncManagerTest {
         override suspend fun logout(accountId: String) = Unit
 
         override suspend fun deleteLocalData(accountId: String) = Unit
+
+        override fun getHistory(accountId: String, days: Long) = emptyList<com.pronote.clay.domain.HistoryPoint>()
     }
 
     private fun restorableSession() = PronoteSession(

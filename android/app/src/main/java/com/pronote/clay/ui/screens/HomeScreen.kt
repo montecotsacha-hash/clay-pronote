@@ -6,6 +6,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -123,15 +125,22 @@ fun HomeScreen(viewModel: HomeViewModel) {
         }
         item { Spacer(Modifier.height(ClayDimens.SectionGap)) }
 
-        val history = snapshot?.history.orEmpty()
-        if (history.size >= 2) {
-            item {
-                ClaySectionTitle("Évolution")
-                Spacer(Modifier.height(12.dp))
-                HistoryChart(history)
-            }
-            item { Spacer(Modifier.height(ClayDimens.SectionGap)) }
+    val history = snapshot?.history.orEmpty()
+    if (history.size >= 2) {
+        item {
+            var periodDays by remember { mutableStateOf(com.pronote.clay.data.HistoryPeriods.ALL_DAYS) }
+
+            ClaySectionTitle("Évolution")
+            Spacer(Modifier.height(12.dp))
+            HistoryPeriodSelector(
+                selectedDays = periodDays,
+                onSelect = { periodDays = it },
+            )
+            Spacer(Modifier.height(10.dp))
+            HistoryChart(history, periodDays)
         }
+        item { Spacer(Modifier.height(ClayDimens.SectionGap)) }
+    }
 
         item {
             ClaySectionTitle("Matières")
@@ -332,27 +341,63 @@ private fun AverageCard(average: com.pronote.clay.domain.AverageSummary) {
     }
 }
 
+/**
+ * Period chips for the history chart — 7 jours, 1 mois, 3 mois, Année.
+ * Purely visual state: the filtering itself is done in [HistoryChart].
+ */
 @Composable
-private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>) {
+private fun HistoryPeriodSelector(
+    selectedDays: Long,
+    onSelect: (Long) -> Unit,
+) {
+    val periods = listOf(
+        com.pronote.clay.data.HistoryPeriods.WEEK_DAYS to "7 jours",
+        com.pronote.clay.data.HistoryPeriods.MONTH_DAYS to "1 mois",
+        com.pronote.clay.data.HistoryPeriods.QUARTER_DAYS to "3 mois",
+        com.pronote.clay.data.HistoryPeriods.YEAR_DAYS to "Année",
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        periods.forEach { (days, label) ->
+            val selected = selectedDays == days ||
+                (selectedDays == com.pronote.clay.data.HistoryPeriods.ALL_DAYS && days == com.pronote.clay.data.HistoryPeriods.YEAR_DAYS)
+            ClayPill(
+                text = label,
+                tint = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.pointerInput(days) {
+                    // tap to switch period
+                    detectTapGestures { onSelect(days) }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>, periodDays: Long = com.pronote.clay.data.HistoryPeriods.ALL_DAYS) {
     val accent = MaterialTheme.colorScheme.primary
     ClaySurface(modifier = Modifier.fillMaxWidth(), depth = 8.dp) {
         Column(Modifier.padding(18.dp)) {
+            val scoped = remember(history, periodDays) {
+                com.pronote.clay.data.PronoteRepositoryImpl.filterHistory(history, periodDays)
+            }
+            val points = if (scoped.size >= 2) scoped else history
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(96.dp),
             ) {
-                val values = history.map { it.value }
+                val values = points.map { it.value }
                 val min = (values.min() - 0.4).coerceAtLeast(0.0).toFloat()
                 val max = (values.max() + 0.4).toFloat()
                 val span = (max - min).takeIf { it > 0f } ?: 1f
 
-                fun x(i: Int) = if (history.size == 1) size.width / 2 else i * size.width / (history.size - 1)
+                fun x(i: Int) = if (points.size == 1) size.width / 2 else i * size.width / (points.size - 1)
                 fun y(v: Double) = size.height - ((v.toFloat() - min) / span) * size.height
 
                 val line = Path()
                 val fill = Path()
-                history.forEachIndexed { i, point ->
+                points.forEachIndexed { i, point ->
                     val px = x(i)
                     val py = y(point.value)
                     if (i == 0) {
@@ -364,7 +409,7 @@ private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>) {
                         fill.lineTo(px, py)
                     }
                 }
-                fill.lineTo(x(history.size - 1), size.height)
+                fill.lineTo(x(points.size - 1), size.height)
                 fill.close()
 
                 drawPath(
@@ -374,7 +419,7 @@ private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>) {
                     ),
                 )
                 drawPath(line, color = accent, style = Stroke(width = 7f, cap = StrokeCap.Round))
-                drawCircle(accent, radius = 9f, center = androidx.compose.ui.geometry.Offset(x(history.size - 1), y(history.last().value)))
+                drawCircle(accent, radius = 9f, center = androidx.compose.ui.geometry.Offset(x(points.size - 1), y(points.last().value)))
             }
         }
     }

@@ -19,6 +19,33 @@ import java.util.Date
 import java.util.Locale
 
 /**
+ * A grade is worth showing on the history chart when its date is parsable and
+ * at most [maxAgeDays] days old. An unparsable date keeps the point visible:
+ * dropping it would silently erase history for a format quirk.
+ */
+fun isWithinPeriod(isoDate: String, todayMs: Long, maxAgeDays: Long): Boolean {
+    val millis = try {
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(isoDate)?.time
+    } catch (_: Exception) {
+        null
+    } ?: return true
+    return millis >= todayMs - maxAgeDays * HistoryPeriods.DAY_MS
+}
+
+/** Chart periods, from one week to the full (school) year. */
+object HistoryPeriods {
+    const val WEEK_DAYS = 7L
+    const val MONTH_DAYS = 30L
+    const val QUARTER_DAYS = 90L
+    const val YEAR_DAYS = 365L
+
+    const val DAY_MS = 24 * 60 * 60 * 1000L
+
+    /** Nothing is filtered out beyond the year view. */
+    const val ALL_DAYS = Long.MAX_VALUE
+}
+
+/**
  * [PronoteRepository] — the abstraction the rest of the app depends on.
  *
  * The repository decides whether data comes from the local cache, from Pronote,
@@ -41,6 +68,12 @@ interface PronoteRepository {
     suspend fun logout(accountId: String)
 
     suspend fun deleteLocalData(accountId: String)
+
+    /**
+     * History narrowed to a period (7 days, 1 month, …) for the chart.
+     * Cache-only: never touches the network.
+     */
+    fun getHistory(accountId: String, days: Long): List<HistoryPoint>
 }
 
 class PronoteRepositoryImpl(
@@ -114,6 +147,11 @@ class PronoteRepositoryImpl(
         onSnapshotSaved()
         Logger.info("Grades updated")
         return PronoteResult.Success(snapshot)
+    }
+
+    override fun getHistory(accountId: String, days: Long): List<HistoryPoint> {
+        val snapshot = local.loadSnapshot(accountId) ?: return emptyList()
+        return filterHistory(snapshot.history, days)
     }
 
     override suspend fun logout(accountId: String) {
@@ -232,4 +270,26 @@ class PronoteRepositoryImpl(
 
     private fun todayIso(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+
+    companion object {
+        /**
+         * Keeps only the history points from the last [days] days. The most
+         * recent point (the snapshot's "today" value) always stays, so the
+         * chart ends on the current average at every period.
+         */
+        fun filterHistory(history: List<HistoryPoint>, days: Long, todayMs: Long = System.currentTimeMillis()): List<HistoryPoint> {
+            if (history.isEmpty()) return emptyList()
+            if (days >= HistoryPeriods.YEAR_DAYS) return history
+            val scoped = history.filter {
+                isWithinPeriod(it.date, todayMs, days) || it == history.last()
+            }
+            // Too few points for the window: keep the two most recent ones
+            // so the chart stays readable without jumping back to the full
+            // history — a week view must not look like the year view.
+            return if (scoped.size >= MIN_POINTS_PER_WINDOW) scoped else history.takeLast(MIN_POINTS_PER_WINDOW)
+        }
+
+        /** Below that a window is unreadable; show the full history instead. */
+        const val MIN_POINTS_PER_WINDOW = 2
+    }
 }
