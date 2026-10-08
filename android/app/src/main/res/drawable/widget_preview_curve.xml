@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="48dp"
+    android:viewportWidth="200"
+    android:viewportHeight="48">
+
+    <!-- Air dégradé sous la courbe -->
+    <path
+        android:fillColor="#339B7BE0"
+        android:pathData="M4,36 C34,16 64,38 96,24 C128,10 164,26 196,10 L196,46 L4,46 Z" />
+    <!-- Courbe -->
+    <path
+        android:pathData="M4,36 C34,16 64,38 96,24 C128,10 164,26 196,10"
+        android:strokeColor="#9B7BE0"
+        android:strokeLineCap="round"
+        android:strokeWidth="3" />
+    <!-- Point lumineux -->
+    <path
+        android:fillColor="#9B7BE0"
+        android:pathData="M196,10 m-4,0 a4,4 0 1,1 8,0 a4,4 0 1,1 -8,0" />
+</vector>

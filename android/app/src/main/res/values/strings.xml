@@ -6,6 +6,10 @@
     <!-- Widgets d'accueil -->
     <string name="widget_open_app">Ouvrir Ardoise</string>
     <string name="widget_average_label">MOYENNE GÉNÉRALE</string>
+    <string name="widget_curve_label">ÉVOLUTION</string>
+    <string name="widget_grade_label">DERNIÈRE NOTE</string>
+    <string name="widget_preview_subject">ANGLAIS LVA</string>
+    <string name="widget_preview_grade_value">7</string>
     <string name="widget_preview_value">14,6</string>
     <string name="widget_preview_unit">/20</string>
     <string name="widget_average_desc">Ta moyenne générale, en un coup d’œil.</string>

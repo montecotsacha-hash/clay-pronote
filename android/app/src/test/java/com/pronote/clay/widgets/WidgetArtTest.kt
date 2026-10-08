@@ -153,4 +153,63 @@ class WidgetArtTest {
         assertEquals(96, bitmap.height)
         assertEquals(255, Color.alpha(bitmap.getPixel(120, 48)))
     }
+
+    @Test
+    fun `a narrow average widget shrinks its type instead of clipping it`() {
+        // ~2x1 cells on a real launcher, in px at density 2.
+        val bitmap = WidgetArt.render(
+            kind = WidgetKind.AVERAGE,
+            widthPx = 300,
+            heightPx = 104,
+            density = 2f,
+            dark = false,
+            snapshot = snapshot(),
+            average = average,
+        )
+        // The big number is still painted...
+        assertTrue(countNear(bitmap, 0xFF2A2240.toInt(), 90) > 10)
+        // ...and none of its ink touches the right edge (no truncated digits).
+        for (y in 0 until bitmap.height) {
+            val pixel = bitmap.getPixel(bitmap.width - 2, y)
+            assertTrue(
+                "ink must not reach the edge",
+                Color.alpha(pixel) == 0 ||
+                    Math.abs(Color.red(pixel) - 0x2A) +
+                    Math.abs(Color.green(pixel) - 0x22) +
+                    Math.abs(Color.blue(pixel) - 0x40) > 90,
+            )
+        }
+    }
+
+    @Test
+    fun `a duo widget too short for both blocks degrades to the curve`() {
+        val bitmap = WidgetArt.render(
+            kind = WidgetKind.DUO,
+            widthPx = 320,
+            heightPx = 120,
+            density = 2f,
+            dark = false,
+            snapshot = snapshot(),
+            average = average,
+        )
+        // Curve painted, number and eyebrow absent: nothing crushed.
+        assertTrue(countNear(bitmap, 0xFF9B7BE0.toInt(), 90) > 20)
+        assertEquals(0, countNear(bitmap, 0xFF2A2240.toInt(), 90))
+    }
+
+    @Test
+    fun `the curve widget still plots when the snapshot carries no history`() {
+        val withoutHistory = snapshot().copy(history = emptyList())
+        val bitmap = WidgetArt.render(
+            kind = WidgetKind.CURVE,
+            widthPx = 480,
+            heightPx = 200,
+            density = 2f,
+            dark = false,
+            snapshot = withoutHistory,
+            average = average,
+        )
+        // The series is rebuilt from the grades, so the line is there.
+        assertTrue(countNear(bitmap, 0xFF9B7BE0.toInt(), 90) > 30)
+    }
 }

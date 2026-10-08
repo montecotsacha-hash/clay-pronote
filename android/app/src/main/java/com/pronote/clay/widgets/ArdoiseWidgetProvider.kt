@@ -12,6 +12,7 @@ import com.pronote.clay.MainActivity
 import com.pronote.clay.PronoteApp
 import com.pronote.clay.R
 import com.pronote.clay.core.Logger
+import kotlin.math.max
 
 /**
  * ArdoiseWidgetProvider — common plumbing for the four home-screen widgets.
@@ -58,8 +59,14 @@ abstract class ArdoiseWidgetProvider : AppWidgetProvider() {
             val options = appWidgetManager.getAppWidgetOptions(id)
             val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
                 .takeIf { it > 0 } ?: fallbackWidthDp
-            val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-                .takeIf { it > 0 } ?: fallbackHeightDp
+            // Portrait height: while the launcher reports the landscape size
+            // (e.g. during a resize), the portrait bundle still carries the
+            // real vertical space — using MAX_HEIGHT instead of MIN prevents
+            // the crushed mid-layout widgets.
+            val heightDp = maxOf(
+                options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT),
+                options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT),
+            ).takeIf { it > 0 } ?: fallbackHeightDp
             val views = buildRemoteViews(context, kind, widthDp, heightDp, id) ?: continue
             appWidgetManager.updateAppWidget(id, views)
         }
@@ -123,10 +130,21 @@ abstract class ArdoiseWidgetProvider : AppWidgetProvider() {
             }
 
             val density = context.resources.displayMetrics.density
+            // Binder caps RemoteViews payloads around 1 MB: a huge widget bitmap
+            // would crash the transaction. Render at the device density but cap
+            // the pixel budget; the ImageView scales the rest losslessly.
+            val maxPixels = 1_500_000L
+            var widthPx = (widthDp * density).toInt()
+            var heightPx = (heightDp * density).toInt()
+            if (widthPx.toLong() * heightPx > maxPixels) {
+                val scale = Math.sqrt(maxPixels.toDouble() / (widthPx.toLong() * heightPx))
+                widthPx = max(1, (widthPx * scale).toInt())
+                heightPx = max(1, (heightPx * scale).toInt())
+            }
             val bitmap = WidgetArt.render(
                 kind = kind,
-                widthPx = (widthDp * density).toInt(),
-                heightPx = (heightDp * density).toInt(),
+                widthPx = widthPx,
+                heightPx = heightPx,
                 density = density,
                 dark = dark,
                 snapshot = snapshot,

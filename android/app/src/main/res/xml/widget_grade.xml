@@ -6,7 +6,7 @@
     android:minResizeHeight="80dp"
     android:minResizeWidth="130dp"
     android:minWidth="180dp"
-    android:previewLayout="@layout/widget_preview"
+    android:previewLayout="@layout/widget_preview_grade"
     android:resizeMode="horizontal|vertical"
     android:targetCellHeight="2"
     android:targetCellWidth="2"

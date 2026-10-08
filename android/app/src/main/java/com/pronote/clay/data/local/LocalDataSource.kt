@@ -1,7 +1,10 @@
 package com.pronote.clay.data.local
 
 import android.content.Context
+import com.pronote.clay.core.AverageCalculator
 import com.pronote.clay.core.Logger
+import com.pronote.clay.domain.AverageSource
+import com.pronote.clay.domain.GeneralAverage
 import com.pronote.clay.domain.PronoteSession
 import com.pronote.clay.domain.SchoolSnapshot
 import org.json.JSONArray
@@ -23,11 +26,36 @@ class LocalDataSource(context: Context) {
     fun loadSnapshot(accountId: String): SchoolSnapshot? {
         val raw = prefs.getString(snapshotKey(accountId), null) ?: return null
         return try {
-            decodeSnapshot(JSONObject(raw))
+            healGeneralAverage(decodeSnapshot(JSONObject(raw)))
         } catch (error: Throwable) {
             Logger.warn("Local snapshot unreadable")
             null
         }
+    }
+
+    /**
+     * Older cached snapshots can lack the general average while grades exist
+     * (hidden Pronote average, partial sync). Rebuilding it here heals every
+     * consumer at once — the home screen and the widgets read through this.
+     */
+    private fun healGeneralAverage(snapshot: SchoolSnapshot): SchoolSnapshot {
+        if (snapshot.generalAverage != null) return snapshot
+        val usableAverages = snapshot.subjectAverages.filter { it.value > 0.0 }
+        val fromSubjects = if (usableAverages.isEmpty()) {
+            null
+        } else {
+            AverageCalculator.generalAverageFromSubjects(snapshot.subjects, usableAverages)
+        }
+        val fromGrades = AverageCalculator.generalAverageFromGrades(snapshot.grades)
+        val value = fromSubjects ?: fromGrades ?: return snapshot
+        return snapshot.copy(
+            generalAverage = GeneralAverage(
+                value = value,
+                period = snapshot.subjectAverages.firstOrNull()?.period ?: "",
+                source = AverageSource.CALCULATED,
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
     }
 
     fun saveSnapshot(accountId: String, snapshot: SchoolSnapshot) {
