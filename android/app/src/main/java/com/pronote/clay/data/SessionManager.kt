@@ -10,11 +10,11 @@ import com.pronote.clay.domain.PronoteSession
 /**
  * SessionManager — owns the Pronote session lifecycle.
  *
- * restoreSession() rehydrates from the encrypted vault
- * isSessionValid() is a cheap expiry check, never a network call
- * refreshSession() tries the connector, else surfaces SessionExpired so the UI
- *                  can ask the user to reconnect while keeping local data
- * clearSession()   wipes the vault entry for the account
+ * restoreSession() rehydrates from the encrypted vault, with a two-step
+ * reconnection chain: mobile token first, then the stored password.
+ * isSessionValid() is a cheap expiry check, never a network call.
+ * refreshSession() tries the chain above; null only when everything failed.
+ * clearSession()   wipes the vault entry for the account.
  */
 class SessionManager(
     private val connector: PronoteCompatibilityLayer,
@@ -36,75 +36,77 @@ class SessionManager(
     }
 
     /**
-     * Rehydrate a session from the vault. Prefers the persistent token; falls
-     * back to re-authenticating with the password only when the connector could
-     * not issue a token.
+     * Rehydrate a session from the vault.
+     *
+     * 1. Reconnexion avec le jeton mobile PRONOTE (rapide, une seule requête).
+     * 2. Secours : le jeton a été invalidé côté serveur (autre appareil, purge
+     *    des sessions, uuid d'appareil différent…). Le mot de passe chiffré
+     *    dans le vault permet de re-fabriquer un jeton sans rien demander à
+     *    l'utilisateur — la reconnexion doit être invisible.
+     *
+     * The password stays in the vault after a token login: it is the safety
+     * net that makes every future session loss self-healing, so it is never
+     * downgraded to null while the account remains active.
      */
     suspend fun restoreSession(accountId: String): PronoteResult<PronoteSession> {
         val stored = vault.load(accountId) ?: return PronoteResult.Failure(PronoteError.SessionExpired)
 
         stored.token?.let { token ->
-            return when (val result = connector.restoreSession(
+            val restored = connector.restoreSession(
                 token = token,
                 schoolUrl = stored.schoolUrl,
                 username = stored.username,
                 deviceUuid = stored.deviceUuid.orEmpty(),
-            )) {
-                is PronoteResult.Success -> {
-                    vault.save(
-                        accountId,
-                        stored.copy(
-                            token = result.value.token,
-                            schoolName = result.value.schoolName,
-                            expiresAt = result.value.expiresAt,
-                            deviceUuid = result.value.deviceUuid ?: stored.deviceUuid,
-                            password = null,
-                        ),
-                    )
-                    PronoteResult.Success(
-                        PronoteSession(
-                            token = result.value.token,
-                            expiresAt = result.value.expiresAt,
-                            schoolUrl = stored.schoolUrl,
-                            schoolName = result.value.schoolName,
-                            connected = true,
-                        ),
-                    )
-                }
-                is PronoteResult.Failure -> result
+            )
+            if (restored is PronoteResult.Success) {
+                val auth = restored.value
+                vault.save(
+                    accountId,
+                    stored.copy(
+                        token = auth.token,
+                        schoolName = auth.schoolName,
+                        expiresAt = auth.expiresAt,
+                        deviceUuid = auth.deviceUuid ?: stored.deviceUuid,
+                    ),
+                )
+                return PronoteResult.Success(
+                    PronoteSession(
+                        token = auth.token,
+                        expiresAt = auth.expiresAt,
+                        schoolUrl = stored.schoolUrl,
+                        schoolName = auth.schoolName,
+                        connected = true,
+                    ),
+                )
             }
         }
 
         stored.password?.let { password ->
-            return when (
-                val result = connector.authenticate(stored.schoolUrl, stored.username, password)
-            ) {
-                is PronoteResult.Success -> {
-                    vault.save(
-                        accountId,
-                        stored.copy(
-                            token = result.value.token,
-                            schoolName = result.value.schoolName,
-                            expiresAt = result.value.expiresAt,
-                            deviceUuid = result.value.deviceUuid ?: stored.deviceUuid,
-                            password = null,
-                        ),
-                    )
-                    PronoteResult.Success(
-                        PronoteSession(
-                            token = result.value.token,
-                            expiresAt = result.value.expiresAt,
-                            schoolUrl = stored.schoolUrl,
-                            schoolName = result.value.schoolName,
-                            connected = true,
-                        ),
-                    )
-                }
-                is PronoteResult.Failure -> result
+            val reauth = connector.authenticate(stored.schoolUrl, stored.username, password)
+            if (reauth is PronoteResult.Success) {
+                val auth = reauth.value
+                vault.save(
+                    accountId,
+                    stored.copy(
+                        token = auth.token,
+                        schoolName = auth.schoolName,
+                        expiresAt = auth.expiresAt,
+                        deviceUuid = auth.deviceUuid ?: stored.deviceUuid,
+                    ),
+                )
+                return PronoteResult.Success(
+                    PronoteSession(
+                        token = auth.token,
+                        expiresAt = auth.expiresAt,
+                        schoolUrl = stored.schoolUrl,
+                        schoolName = auth.schoolName,
+                        connected = true,
+                    ),
+                )
             }
         }
 
-        Logger.warn("Session restore failed")
+        Logger.warn("Session restore failed (token and password)")
         return PronoteResult.Failure(PronoteError.SessionExpired)
     }
 

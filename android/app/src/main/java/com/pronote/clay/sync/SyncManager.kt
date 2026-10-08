@@ -43,6 +43,9 @@ class SyncManager(
     private val mutex = Mutex()
     private var lastSyncAt = 0L
 
+    /** Backoff after a hard auth failure so background retries stay rare. */
+    private var authBlockedUntil = 0L
+
     val isSyncing: Boolean get() = mutex.isLocked
 
     /**
@@ -65,12 +68,24 @@ class SyncManager(
             return SyncResult(ok = false, skipped = SkipReason.RECENT)
         }
 
-        return mutex.withLock { run(accountId) }
+        return mutex.withLock { run(accountId, force) }
     }
 
-    private suspend fun run(accountId: String): SyncResult {
+    private suspend fun run(accountId: String, force: Boolean): SyncResult {
+        val now = System.currentTimeMillis()
         val before = repository.getCachedSnapshot(accountId)
         val previousAverage = before?.generalAverage?.value
+
+        // Credentials genuinely rejected (message shown to the user): don't
+        // hammer the server from the WorkManager retries — wait out a backoff
+        // that only a manual refresh (force) can cut through.
+        if (now < authBlockedUntil && !force) {
+            return SyncResult(
+                ok = false,
+                error = PronoteError.SessionExpired.userMessage,
+                errorHint = PronoteError.SessionExpired.hint,
+            )
+        }
 
         Logger.info("Sync started")
         var result = repository.sync(accountId)
@@ -88,6 +103,11 @@ class SyncManager(
         return when (result) {
             is PronoteResult.Failure -> {
                 Logger.warn("Sync failed")
+                if (result.error is PronoteError.InvalidCredentials ||
+                    result.error is PronoteError.CaptchaRequired
+                ) {
+                    authBlockedUntil = System.currentTimeMillis() + AUTH_BACKOFF_MS
+                }
                 SyncResult(
                     ok = false,
                     previousAverage = previousAverage,
@@ -112,6 +132,7 @@ class SyncManager(
     /** Called when a session is replaced so the next sync is never skipped. */
     fun reset() {
         lastSyncAt = 0L
+        authBlockedUntil = 0L
     }
 
     companion object {
@@ -120,6 +141,11 @@ class SyncManager(
 
         /** Minimum delay between two automatic syncs. */
         const val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L
+
+        /** Backoff applied after a hard auth failure (bad creds, captcha). */
+        const val AUTH_BACKOFF_MS = 15 * 60 * 1000L
+
+        private val AUTH_BACKOFF = PronoteError.SessionExpired
 
         /** A grade is announced only when it is at most this many days old. */
         const val MAX_NOTIFY_AGE_DAYS = 14L

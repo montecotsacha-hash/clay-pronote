@@ -12,8 +12,8 @@ android {
         applicationId = "com.pronote.clay"
         minSdk = 24
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.3.2"
+        versionCode = 10
+        versionName = "1.3.3"
     }
 
     buildTypes {

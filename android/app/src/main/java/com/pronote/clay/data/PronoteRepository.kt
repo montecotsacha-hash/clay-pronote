@@ -106,7 +106,11 @@ class PronoteRepositoryImpl(
             connected = true,
         )
 
-        // Prefer the token; keep the password only if the connector gave no token.
+        // Prefer the token as the primary path; the password stays in the
+        // encrypted vault as the safety net. PRONOTE can invalidate a mobile
+        // token at any time (another device, server purge, uuid change): with
+        // the password kept, [SessionManager] silently re-mints a token and
+        // the user never sees a login screen again.
         sessions.save(
             accountId,
             SecureCredentialsManager.StoredCredentials(
@@ -116,9 +120,7 @@ class PronoteRepositoryImpl(
                 token = auth.token.takeIf { it.isNotEmpty() },
                 expiresAt = auth.expiresAt,
                 deviceUuid = auth.deviceUuid,
-                // Never persist an account password when the connector issues
-                // its own encrypted mobile refresh token.
-                password = password.takeIf { auth.token.isEmpty() },
+                password = password.takeIf { it.isNotBlank() },
             ),
         )
         local.saveSessionMeta(accountId, session)

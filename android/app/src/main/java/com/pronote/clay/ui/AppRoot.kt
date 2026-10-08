@@ -78,6 +78,7 @@ fun AppRoot(viewModel: HomeViewModel) {
                     }
                 is HomeUiState.Success -> HomeScreen(viewModel)
                 is HomeUiState.Offline -> HomeScreen(viewModel)
+                is HomeUiState.SyncIssue -> HomeScreen(viewModel)
             }
         }
     }

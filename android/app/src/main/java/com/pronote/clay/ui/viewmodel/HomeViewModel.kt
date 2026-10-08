@@ -38,6 +38,19 @@ sealed interface HomeUiState {
         val subjects: List<SubjectRow> = emptyList(),
     ) : HomeUiState
 
+    /**
+     * Sync failed but cached data exists: the dashboard stays usable and the
+     * problem is shown as a banner. Not an Error state — Error only when
+     * there is nothing to show.
+     */
+    data class SyncIssue(
+        val snapshot: SchoolSnapshot,
+        val average: AverageSummary?,
+        val subjects: List<SubjectRow> = emptyList(),
+        val message: String,
+        val hint: String? = null,
+    ) : HomeUiState
+
     data class Error(
         val message: String,
         val hint: String?,
@@ -165,12 +178,25 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
             }
             result.error != null -> {
                 val cached = container.getCachedData.execute(accountId)
-                _state.value = HomeUiState.Error(
-                    message = result.error,
-                    hint = result.errorHint ?: PronoteError.NetworkUnavailable.hint,
-                    snapshot = cached,
-                    subjects = container.getSubjectRows.execute(cached),
-                )
+                if (cached != null) {
+                    // With local data available, a failed background sync is
+                    // never a login failure: keep the dashboard usable and
+                    // report the problem as a banner the next retry can clear.
+                    _state.value = HomeUiState.SyncIssue(
+                        snapshot = cached,
+                        average = container.calculateGeneralAverage.execute(cached),
+                        subjects = container.getSubjectRows.execute(cached),
+                        message = result.error,
+                        hint = result.errorHint,
+                    )
+                } else {
+                    _state.value = HomeUiState.Error(
+                        message = result.error,
+                        hint = result.errorHint ?: PronoteError.NetworkUnavailable.hint,
+                        snapshot = null,
+                        subjects = emptyList(),
+                    )
+                }
             }
             else -> setRefreshing(false)
         }

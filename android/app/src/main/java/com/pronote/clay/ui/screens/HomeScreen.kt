@@ -83,11 +83,12 @@ fun HomeScreen(viewModel: HomeViewModel) {
 
     val success = state as? HomeUiState.Success
     val offline = state as? HomeUiState.Offline
+    val issue = state as? HomeUiState.SyncIssue
     val error = state as? HomeUiState.Error
 
-    val snapshot = success?.snapshot ?: offline?.snapshot ?: error?.snapshot
-    val average = success?.average ?: offline?.average
-    val subjects = success?.subjects ?: offline?.subjects ?: error?.subjects.orEmpty()
+    val snapshot = success?.snapshot ?: offline?.snapshot ?: issue?.snapshot ?: error?.snapshot
+    val average = success?.average ?: offline?.average ?: issue?.average
+    val subjects = success?.subjects ?: offline?.subjects ?: issue?.subjects ?: error?.subjects.orEmpty()
     val refreshing = success?.refreshing ?: false
 
     if (showSettings) {
@@ -110,6 +111,12 @@ fun HomeScreen(viewModel: HomeViewModel) {
         if (!online || offline != null) {
             item { OfflineBanner(snapshot) }
             item { Spacer(Modifier.height(14.dp)) }
+        }
+        if (issue != null) {
+            item {
+                ClayErrorBox(message = issue.message, hint = issue.hint)
+                Spacer(Modifier.height(14.dp))
+            }
         }
         if (error != null) {
             item {
