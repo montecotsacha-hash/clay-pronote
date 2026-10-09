@@ -64,7 +64,7 @@ object Mappers {
         val start = dto.debut?.takeIf { it.length >= 16 } ?: return null
         val end = dto.fin?.takeIf { it.length >= 16 } ?: start
         val name = dto.nomMatiere?.trim()?.takeUnless { it.isEmpty() }
-            ?: dto.matiere?.trim()
+            ?: dto.matiere?.trim()?.takeUnless { it.isEmpty() }
             ?: "Cours"
         return TimetableLesson(
             subjectId = dto.matiere?.takeIf { it.isNotBlank() },

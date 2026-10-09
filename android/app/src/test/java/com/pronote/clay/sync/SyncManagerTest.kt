@@ -89,6 +89,11 @@ class SyncManagerTest {
         override suspend fun deleteLocalData(accountId: String) = Unit
 
         override fun getHistory(accountId: String, days: Long) = emptyList<com.pronote.clay.domain.HistoryPoint>()
+
+        override suspend fun getTimetable(
+            accountId: String,
+            weekStartIso: String,
+        ): PronoteResult<List<com.pronote.clay.domain.TimetableLesson>> = PronoteResult.Success(emptyList())
     }
 
     private fun restorableSession() = PronoteSession(

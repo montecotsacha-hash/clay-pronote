@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pronote.clay.AppContainer
 import com.pronote.clay.core.Logger
+import com.pronote.clay.core.PronoteResult
 import com.pronote.clay.domain.TimetableLesson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,8 +33,22 @@ sealed interface TimetableUiState {
  *
  * Swiping between days never refetches: the whole week arrives in one
  * repository call and is cached there. Only changing weeks hits the network.
+ *
+ * The narrow constructor takes the two things it actually needs, so the
+ * ViewModel is unit-testable on the JVM without an Android container.
  */
-class TimetableViewModel(private val container: AppContainer) : ViewModel() {
+class TimetableViewModel(
+    private val loadTimetable: suspend (accountId: String, weekStartIso: String) -> PronoteResult<List<TimetableLesson>>,
+    private val activeAccountId: () -> String?,
+) : ViewModel() {
+
+    /** Production wiring: same behaviour through the app container. */
+    constructor(container: AppContainer) : this(
+        loadTimetable = { accountId, weekStartIso ->
+            container.getTimetable.execute(accountId, weekStartIso)
+        },
+        activeAccountId = container::activeAccountId,
+    )
 
     private val _state = MutableStateFlow<TimetableUiState>(TimetableUiState.Loading)
     val state: StateFlow<TimetableUiState> = _state.asStateFlow()
@@ -69,20 +84,20 @@ class TimetableViewModel(private val container: AppContainer) : ViewModel() {
     private fun loadWeek(start: LocalDate) {
         weekStart = start
         _state.value = TimetableUiState.Loading
-        val accountId = container.activeAccountId() ?: run {
+        val accountId = activeAccountId() ?: run {
             _state.value = TimetableUiState.Error("Aucun compte connecté.")
             return
         }
 
         viewModelScope.launch {
-            when (val result = container.getTimetable.execute(accountId, start.toString())) {
-                is com.pronote.clay.core.PronoteResult.Success -> {
+            when (val result = loadTimetable(accountId, start.toString())) {
+                is PronoteResult.Success -> {
                     _state.value = TimetableUiState.Ready(
                         weekStart = start,
                         lessons = result.value,
                     )
                 }
-                is com.pronote.clay.core.PronoteResult.Failure -> {
+                is PronoteResult.Failure -> {
                     Logger.warn("Timetable load failed")
                     _state.value = TimetableUiState.Error(
                         result.error.userMessage + " " + (result.error.hint ?: ""),

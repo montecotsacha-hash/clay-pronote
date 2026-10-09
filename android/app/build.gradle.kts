@@ -12,8 +12,8 @@ android {
         applicationId = "com.pronote.clay"
         minSdk = 24
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.3.3"
+        versionCode = 11
+        versionName = "1.4.0"
     }
 
     buildTypes {
@@ -77,6 +77,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     // Real Android runtime on the JVM: launches MainActivity and renders the
     // Compose tree, which is the closest thing to an emulator in this CI.
     testImplementation("org.robolectric:robolectric:4.14.1")
