@@ -19,6 +19,7 @@ import com.pronote.clay.domain.GetGradesUseCase
 import com.pronote.clay.domain.GetStudentUseCase
 import com.pronote.clay.domain.GetSubjectRowsUseCase
 import com.pronote.clay.domain.GetSubjectsUseCase
+import com.pronote.clay.domain.GetTimetableUseCase
 import com.pronote.clay.domain.LoginUseCase
 import com.pronote.clay.domain.LogoutUseCase
 import com.pronote.clay.domain.RefreshSessionUseCase
@@ -66,6 +67,7 @@ class AppContainer(context: Context) {
     val getGrades = GetGradesUseCase()
     val getAverages = GetAveragesUseCase()
     val getSubjectRows = GetSubjectRowsUseCase()
+    val getTimetable = GetTimetableUseCase(repository)
     val calculateGeneralAverage = CalculateGeneralAverageUseCase()
 
     /**

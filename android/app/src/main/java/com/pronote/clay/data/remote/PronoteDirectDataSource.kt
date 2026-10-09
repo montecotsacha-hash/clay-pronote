@@ -137,6 +137,36 @@ class PronoteDirectDataSource : PronoteDataSource {
         sessions.entries.removeAll { (_, session) -> session.refreshToken == token }
     }
 
+    override suspend fun fetchTimetable(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+        weekStartIso: String,
+    ): PronoteResult<List<PronoteLessonDto>> = withContext(Dispatchers.IO) {
+        val key = sessionKey(schoolUrl, username)
+        val active = sessions[key]?.takeIf { it.refreshToken == token }
+        if (active == null) {
+            // No live session for this token: reconnect first, then query.
+            when (val restored = connectWithToken(token, schoolUrl, username, deviceUuid)) {
+                is PronoteResult.Failure -> return@withContext restored
+                is PronoteResult.Success -> Unit
+            }
+        }
+        val session = sessions[key]?.session
+            ?: return@withContext PronoteResult.Failure(PronoteError.SessionExpired)
+        try {
+            PronoteResult.Success(session.readTimetable(weekStartIso))
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: SessionExpiredError) {
+            sessions.remove(key, sessions[key])
+            PronoteResult.Failure(mapError(error))
+        } catch (error: Throwable) {
+            PronoteResult.Failure(mapError(error))
+        }
+    }
+
     private suspend fun connectWithToken(
         token: String,
         schoolUrl: String,
@@ -839,6 +869,75 @@ private class PronoteSession private constructor(
             generalAverage = generalAverage,
             period = period.name,
         )
+    }
+
+    /**
+     * Emploi du temps d'une semaine — requête PageCalendrier (onglet 16).
+     * Pronote renvoie les cours dans `ListeCours.V` avec des dates au format
+     * tableau [annee, mois, jour, heure, minutes] et des séparateurs "|"
+     * pour les marqueurs (annulé, salle permutée…).
+     */
+    fun readTimetable(weekStartIso: String): List<PronoteLessonDto> {
+        val response = post(
+            "PageCalendrier",
+            JSONObject()
+                .put("Signature", JSONObject().put("onglet", 16))
+                .put("data", JSONObject().put("Periode", JSONObject().put("_oeuf", weekStartIso))),
+        ).contentData()
+
+        val lessons = mutableListOf<PronoteLessonDto>()
+        response.optJSONObject("ListeCours")?.optJSONArray("V")?.let { list ->
+            for (i in 0 until list.length()) {
+                val cours = list.optJSONObject(i) ?: continue
+                val matiere = cours.optJSONObject("Matiere")?.optJSONObject("V")
+                val start = decodePronoteDateTime(cours.optJSONArray("dateDuCour"))
+                    ?: continue
+                val end = decodePronoteDateTime(cours.optJSONArray("dateDuCourFin")) ?: start
+
+                val cancelled = cours.has("estCoursAnnule") && cours.optBoolean("estCoursAnnule") ||
+                    cours.optString("Statut").contains("annul", ignoreCase = true)
+                val memoParts = mutableListOf<String>()
+                cours.optJSONObject("ListeContenus")?.optJSONArray("V")?.let { contenus ->
+                    for (j in 0 until contenus.length()) {
+                        contenus.optJSONObject(j)?.optString("L")?.takeIf { it.isNotBlank() }?.let {
+                            memoParts.add(it)
+                        }
+                    }
+                }
+                cours.optString("memo")?.takeIf { it.isNotBlank() }?.let { memoParts.add(it) }
+
+                lessons.add(
+                    PronoteLessonDto(
+                        matiere = matiere?.optString("N")?.ifEmpty { null },
+                        nomMatiere = matiere?.optString("L")
+                            ?: cours.optString("demandeInclusion"),
+                        professeur = cours.optJSONObject("ListeProfesseurs")?.optJSONArray("V")
+                            ?.optJSONObject(0)?.optString("L"),
+                        salle = cours.optJSONObject("ListeSalles")?.optJSONArray("V")
+                            ?.optJSONObject(0)?.optString("L"),
+                        groupe = cours.optJSONObject("ListeGroupes")?.optJSONArray("V")
+                            ?.optJSONObject(0)?.optString("L"),
+                        debut = start,
+                        fin = end,
+                        annule = cancelled,
+                        memo = memoParts.joinToString(" — ").takeIf { it.isNotBlank() },
+                    ),
+                )
+            }
+        }
+        return lessons.sortedBy { it.debut.orEmpty() }
+    }
+
+    /** Pronote date array [y, m, d, h, min] -> ISO "yyyy-MM-ddTHH:mm:00". */
+    private fun decodePronoteDateTime(arr: org.json.JSONArray?): String? {
+        if (arr == null || arr.length() < 3) return null
+        val year = arr.optInt(0, 0)
+        val month = arr.optInt(1, 0)
+        val day = arr.optInt(2, 0)
+        if (year <= 0 || month !in 1..12 || day !in 1..31) return null
+        val hour = arr.optInt(3, 0)
+        val minute = arr.optInt(4, 0)
+        return "%04d-%02d-%02dT%02d:%02d:00".format(year, month, day, hour, minute)
     }
 
     private fun decodeGradeValue(raw: String): Pair<Double, Boolean> {

@@ -31,6 +31,15 @@ class SyncPronoteUseCase(private val repository: PronoteRepository) {
     suspend fun execute(accountId: String) = repository.sync(accountId)
 }
 
+/** Timetable of one week, network-backed with a short repository cache. */
+class GetTimetableUseCase(private val repository: PronoteRepository) {
+    suspend fun execute(
+        accountId: String,
+        weekStartIso: String,
+    ): PronoteResult<List<TimetableLesson>> =
+        repository.getTimetable(accountId, weekStartIso)
+}
+
 class RefreshSessionUseCase(private val repository: PronoteRepository) {
     suspend fun execute(accountId: String) = repository.refreshSession(accountId)
 }

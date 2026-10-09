@@ -58,6 +58,25 @@ data class PronoteRawPayload(
     val period: String = "T2",
 )
 
+/** One course of the timetable, in the connector's raw shape. */
+data class PronoteLessonDto(
+    /** Subject id as Pronote knows it (may be absent on activities). */
+    val matiere: String? = null,
+    /** Subject display name, e.g. "MATHS". */
+    val nomMatiere: String? = null,
+    val professeur: String? = null,
+    val salle: String? = null,
+    val groupe: String? = null,
+    /** ISO start, e.g. "2026-10-08T08:00:00". */
+    val debut: String? = null,
+    /** ISO end. */
+    val fin: String? = null,
+    /** Cancelled course ("cours annulé"). */
+    val annule: Boolean = false,
+    /** Detention, test label… free text under the subject. */
+    val memo: String? = null,
+)
+
 data class PronoteAuthResult(
     /** Opaque session token — kept only in the encrypted vault. */
     val token: String,
@@ -101,6 +120,18 @@ interface PronoteDataSource {
         username: String,
         deviceUuid: String,
     ): PronoteResult<PronoteRawPayload>
+
+    /**
+     * Timetable of one week, from its Monday (ISO date). A live per-week
+     * query: sessions stay on the connector, results are never cached here.
+     */
+    suspend fun fetchTimetable(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+        weekStartIso: String,
+    ): PronoteResult<List<PronoteLessonDto>>
 
     suspend fun logout(token: String)
 }
@@ -152,6 +183,21 @@ class PronoteCompatibilityLayer(private val source: PronoteDataSource) {
                 is PronoteResult.Success -> PronoteResult.Success(assertPayload(result.value))
                 is PronoteResult.Failure -> result
             }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            PronoteResult.Failure(normalize(error))
+        }
+
+    suspend fun fetchTimetable(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+        weekStartIso: String,
+    ): PronoteResult<List<PronoteLessonDto>> =
+        try {
+            source.fetchTimetable(token, schoolUrl, username, deviceUuid, weekStartIso)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {

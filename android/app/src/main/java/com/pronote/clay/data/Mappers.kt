@@ -1,6 +1,7 @@
 package com.pronote.clay.data
 
 import com.pronote.clay.data.remote.PronoteGradeDto
+import com.pronote.clay.data.remote.PronoteLessonDto
 import com.pronote.clay.data.remote.PronoteStudentDto
 import com.pronote.clay.data.remote.PronoteSubjectAverageDto
 import com.pronote.clay.data.remote.PronoteSubjectDto
@@ -9,6 +10,7 @@ import com.pronote.clay.domain.Grade
 import com.pronote.clay.domain.Student
 import com.pronote.clay.domain.Subject
 import com.pronote.clay.domain.SubjectAverage
+import com.pronote.clay.domain.TimetableLesson
 
 /**
  * GradeMapper / AverageMapper — the only place DTOs become domain models.
@@ -57,4 +59,23 @@ object Mappers {
         period = dto.periode ?: "T2",
         source = AverageSource.OFFICIAL,
     )
+
+    fun mapLesson(dto: PronoteLessonDto): TimetableLesson? {
+        val start = dto.debut?.takeIf { it.length >= 16 } ?: return null
+        val end = dto.fin?.takeIf { it.length >= 16 } ?: start
+        val name = dto.nomMatiere?.trim()?.takeUnless { it.isEmpty() }
+            ?: dto.matiere?.trim()
+            ?: "Cours"
+        return TimetableLesson(
+            subjectId = dto.matiere?.takeIf { it.isNotBlank() },
+            subjectName = name,
+            teacher = dto.professeur?.trim()?.takeUnless { it.isEmpty() },
+            room = dto.salle?.trim()?.takeUnless { it.isEmpty() },
+            group = dto.groupe?.trim()?.takeUnless { it.isEmpty() },
+            startIso = start,
+            endIso = end,
+            cancelled = dto.annule,
+            memo = dto.memo?.trim()?.takeUnless { it.isEmpty() },
+        )
+    }
 }

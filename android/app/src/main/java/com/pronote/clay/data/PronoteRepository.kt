@@ -74,6 +74,13 @@ interface PronoteRepository {
      * Cache-only: never touches the network.
      */
     fun getHistory(accountId: String, days: Long): List<HistoryPoint>
+
+    /**
+     * Timetable of the week starting on [weekStartIso] (a Monday, ISO date).
+     * Network-backed with a short in-memory cache so swiping between weeks
+     * stays instant on re-visit.
+     */
+    suspend fun getTimetable(accountId: String, weekStartIso: String): PronoteResult<List<com.pronote.clay.domain.TimetableLesson>>
 }
 
 class PronoteRepositoryImpl(
@@ -156,13 +163,44 @@ class PronoteRepositoryImpl(
         return filterHistory(snapshot.history, days)
     }
 
+    /** Small per-week timetable cache — survives week-to-week swipes. */
+    private val timetableCache = object : LinkedHashMap<String, List<com.pronote.clay.domain.TimetableLesson>>(8) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<com.pronote.clay.domain.TimetableLesson>>): Boolean =
+            size > 6
+    }
+
+    override suspend fun getTimetable(
+        accountId: String,
+        weekStartIso: String,
+    ): PronoteResult<List<com.pronote.clay.domain.TimetableLesson>> {
+        timetableCache["$accountId|$weekStartIso"]?.let { return PronoteResult.Success(it) }
+
+        val stored = sessions.load(accountId)
+            ?: return PronoteResult.Failure(PronoteError.SessionExpired)
+
+        val result = connector.fetchTimetable(
+            token = stored.token.orEmpty(),
+            schoolUrl = stored.schoolUrl,
+            username = stored.username,
+            deviceUuid = stored.deviceUuid.orEmpty(),
+            weekStartIso = weekStartIso,
+        )
+        if (result is PronoteResult.Failure) return result
+
+        val lessons = (result as PronoteResult.Success).value
+            .mapNotNull { Mappers.mapLesson(it) }
+            .sortedBy { it.startIso }
+        timetableCache["$accountId|$weekStartIso"] = lessons
+        return PronoteResult.Success(lessons)
+    }
+
+    /** "Supprimer mes données" — snapshot, session metadata and secrets. */
     override suspend fun logout(accountId: String) {
         sessions.load(accountId)?.token?.let { connector.logout(it) }
         sessions.clearSession(accountId)
         local.clearSessionMeta(accountId)
     }
 
-    /** "Supprimer mes données" — snapshot, session metadata and secrets. */
     override suspend fun deleteLocalData(accountId: String) {
         local.clearAccount(accountId)
         local.clearSessionMeta(accountId)

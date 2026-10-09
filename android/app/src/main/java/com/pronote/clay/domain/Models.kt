@@ -56,6 +56,43 @@ data class GeneralAverage(
 
 data class HistoryPoint(val date: String, val value: Double)
 
+/**
+ * One course of the timetable, already normalized for the UI.
+ * Times are local "HH:mm", dates ISO "yyyy-MM-dd".
+ */
+data class TimetableLesson(
+    val subjectId: String?,
+    val subjectName: String,
+    val teacher: String? = null,
+    val room: String? = null,
+    val group: String? = null,
+    /** ISO datetime start, e.g. "2026-10-08T08:00:00". */
+    val startIso: String,
+    /** ISO datetime end. */
+    val endIso: String,
+    val cancelled: Boolean = false,
+    /** Detention, test label… free text under the subject. */
+    val memo: String? = null,
+) {
+    /** "08:00". */
+    val startTime: String get() = startIso.take(11 + 5).substring(11, 16)
+
+    /** "09:00". */
+    val endTime: String get() = endIso.take(16).substring(11, 16)
+
+    /** ISO date of the course day. */
+    val day: String get() = startIso.take(10)
+
+    /** Duration in minutes — used to size the cards. */
+    val durationMinutes: Int
+        get() = runCatching {
+            val fmt = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            val s = java.time.LocalDateTime.parse(startIso, fmt)
+            val e = java.time.LocalDateTime.parse(endIso, fmt)
+            java.time.Duration.between(s, e).toMinutes().toInt()
+        }.getOrDefault(60)
+}
+
 data class PronoteSession(
     /** Opaque token — never rendered, never logged. */
     val token: String,

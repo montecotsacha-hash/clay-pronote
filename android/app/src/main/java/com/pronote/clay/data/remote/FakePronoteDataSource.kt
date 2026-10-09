@@ -175,6 +175,43 @@ class FakePronoteDataSource : PronoteDataSource {
         return PronoteResult.Success(withNews)
     }
 
+    override suspend fun fetchTimetable(
+        token: String,
+        schoolUrl: String,
+        username: String,
+        deviceUuid: String,
+        weekStartIso: String,
+    ): PronoteResult<List<PronoteLessonDto>> {
+        delay(300)
+        if (token.isBlank()) return PronoteResult.Failure(PronoteError.SessionExpired)
+
+        /** Monday of the demo week + a few courses across the days. */
+        fun at(dayOffset: Int, hour: Int, minute: Int): String {
+            val cal = java.util.Calendar.getInstance()
+            cal.time = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(weekStartIso)!!
+            cal.add(java.util.Calendar.DAY_OF_YEAR, dayOffset)
+            val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(cal.time)
+            return "%sT%02d:%02d:00".format(day, hour, minute)
+        }
+
+        val lessons = listOf(
+            PronoteLessonDto("maths", "Mathématiques", "Mme Dubois", "B204", null, at(0, 8, 0), at(0, 9, 0)),
+            PronoteLessonDto("francais", "Français", "M. Leroy", "A101", null, at(0, 9, 10), at(0, 10, 10)),
+            PronoteLessonDto("anglais", "Anglais", "Ms. Carter", "C12", null, at(0, 10, 20), at(0, 11, 20)),
+            PronoteLessonDto("physique", "Physique-Chimie", "M. Bernard", "Labo 2", null, at(0, 13, 30), at(0, 15, 0)),
+            // A cancelled course: the UI must show it distinctly.
+            PronoteLessonDto("ses", "SES", "M. Roux", "B108", null, at(1, 8, 0), at(1, 9, 0), annule = true, memo = "Cours annulé"),
+            PronoteLessonDto("histoire", "Histoire-Géo", "Mme Petit", "A305", null, at(1, 10, 20), at(1, 11, 50)),
+            PronoteLessonDto("maths", "Mathématiques", "Mme Dubois", "B204", null, at(2, 8, 0), at(2, 9, 30)),
+            PronoteLessonDto("anglais", "Anglais", "Ms. Carter", "C12", null, at(2, 14, 0), at(2, 15, 0)),
+            PronoteLessonDto("ses", "SES", "M. Roux", "B108", null, at(3, 9, 10), at(3, 10, 40)),
+            PronoteLessonDto("francais", "Français", "M. Leroy", "A101", null, at(3, 13, 30), at(3, 15, 0)),
+            PronoteLessonDto("physique", "Physique-Chimie", "M. Bernard", "Labo 2", null, at(4, 8, 0), at(4, 9, 30)),
+            PronoteLessonDto("histoire", "Histoire-Géo", "Mme Petit", "A305", null, at(4, 10, 20), at(4, 11, 20)),
+        )
+        return PronoteResult.Success(lessons)
+    }
+
     override suspend fun logout(token: String) {
         delay(120)
     }

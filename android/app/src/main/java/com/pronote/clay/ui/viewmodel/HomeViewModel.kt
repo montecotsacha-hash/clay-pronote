@@ -81,7 +81,7 @@ sealed interface HomeEvent {
  * case or the SyncManager. It renders cached data first, then refreshes
  * silently in the background.
  */
-class HomeViewModel(private val container: AppContainer) : ViewModel() {
+class HomeViewModel(internal val container: AppContainer) : ViewModel() {
 
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val state: StateFlow<HomeUiState> = _state.asStateFlow()

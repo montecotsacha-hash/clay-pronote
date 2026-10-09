@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
@@ -55,6 +56,8 @@ import com.pronote.clay.domain.Subject
 import com.pronote.clay.ui.components.ClayEmptyState
 import com.pronote.clay.ui.components.ClayErrorBox
 import com.pronote.clay.ui.components.ClayIconButton
+import com.pronote.clay.ui.screens.TimetableScreen
+import com.pronote.clay.ui.viewmodel.TimetableViewModel
 import com.pronote.clay.ui.components.ClayPill
 import com.pronote.clay.ui.components.ClaySectionTitle
 import com.pronote.clay.ui.components.ClaySurface
@@ -80,6 +83,7 @@ fun HomeScreen(viewModel: HomeViewModel) {
     val state by viewModel.state.collectAsState()
     val online by viewModel.online.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
+    var showTimetable by remember { mutableStateOf(false) }
 
     val success = state as? HomeUiState.Success
     val offline = state as? HomeUiState.Offline
@@ -94,6 +98,12 @@ fun HomeScreen(viewModel: HomeViewModel) {
     if (showSettings) {
         SettingsSheet(viewModel = viewModel, onDismiss = { showSettings = false })
     }
+    if (showTimetable) {
+        TimetableScreen(
+            viewModel = androidx.lifecycle.viewmodel.compose.viewModel { TimetableViewModel(viewModel.container) },
+            onBack = { showTimetable = false },
+        )
+    }
 
     LazyColumn(
         // The Activity draws edge-to-edge; keep the dashboard inside the
@@ -105,7 +115,15 @@ fun HomeScreen(viewModel: HomeViewModel) {
             bottom = 48.dp,
         ),
     ) {
-        item { HomeTopBar(snapshot, refreshing, viewModel, onSettings = { showSettings = true }) }
+        item {
+            HomeTopBar(
+                snapshot,
+                refreshing,
+                viewModel,
+                onSettings = { showSettings = true },
+                onTimetable = { showTimetable = true },
+            )
+        }
         item { Spacer(Modifier.height(18.dp)) }
 
         if (!online || offline != null) {
@@ -207,6 +225,7 @@ private fun HomeTopBar(
     refreshing: Boolean,
     viewModel: HomeViewModel,
     onSettings: () -> Unit,
+    onTimetable: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -235,6 +254,8 @@ private fun HomeTopBar(
             )
         }
         RefreshButton(refreshing) { viewModel.refresh() }
+        Spacer(Modifier.width(10.dp))
+        ClayIconButton(Icons.Rounded.CalendarMonth, "Emploi du temps", onClick = onTimetable)
         Spacer(Modifier.width(10.dp))
         ClayIconButton(Icons.Rounded.Settings, "Réglages", onClick = onSettings)
     }
