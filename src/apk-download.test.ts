@@ -37,10 +37,27 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
     expect(listing).toContain("classes.dex");
   });
 
-  it("est le build release courant, pas une copie obsolète", () => {
-    expect(existsSync(GRADLE_APK)).toBe(true);
-    expect(sha256(APK_PATH)).toBe(sha256(GRADLE_APK));
+  // L'empreinte publiée dans PUBLICATION.md est la référence versionnée : elle
+  // est vérifiable partout, y compris sans build Gradle local.
+  it("est l'APK dont PUBLICATION.md publie l'empreinte", () => {
+    const documented = readFileSync(join(ROOT, "PUBLICATION.md"), "utf8").match(
+      /APK signé.*?SHA-256 `([0-9a-f]{64})`/,
+    )?.[1];
+    expect(documented, "empreinte de l'APK absente de PUBLICATION.md").toMatch(
+      /^[0-9a-f]{64}$/,
+    );
+    expect(sha256(APK_PATH)).toBe(documented);
   });
+
+  // La sortie Gradle n'est plus versionnée : quand elle existe sur le poste,
+  // elle doit être identique à l'APK servi ; sinon il n'y a rien à comparer et
+  // la vérification d'empreinte ci-dessus fait foi.
+  it.skipIf(!existsSync(GRADLE_APK))(
+    "est le build release courant, pas une copie obsolète",
+    () => {
+      expect(sha256(APK_PATH)).toBe(sha256(GRADLE_APK));
+    },
+  );
 
   it("porte le nouveau nom, racine comme ancien chemin", () => {
     const rootCopy = join(ROOT, "Ardoise.apk");
