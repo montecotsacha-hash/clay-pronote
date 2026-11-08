@@ -1,6 +1,8 @@
 package com.pronote.clay
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import androidx.core.content.pm.PackageInfoCompat
 import com.pronote.clay.core.NetworkMonitor
 import com.pronote.clay.data.PronoteRepository
 import com.pronote.clay.data.PronoteRepositoryImpl
@@ -10,6 +12,7 @@ import com.pronote.clay.data.local.PreferencesStore
 import com.pronote.clay.data.remote.PronoteDirectDataSource
 import com.pronote.clay.data.remote.PronoteCompatibilityLayer
 import com.pronote.clay.data.remote.PronoteDataSource
+import com.pronote.clay.data.remote.UpdateChecker
 import com.pronote.clay.data.security.SecureCredentialsManager
 import com.pronote.clay.domain.CalculateGeneralAverageUseCase
 import com.pronote.clay.domain.DeleteLocalDataUseCase
@@ -36,9 +39,38 @@ class AppContainer(context: Context) {
 
     private val appContext = context.applicationContext
 
-    val dataSource: PronoteDataSource = PronoteDirectDataSource()
+    /** True only for a debuggable build — never for a published APK. */
+    private val isDebuggable: Boolean =
+        (appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+
+    /**
+     * The Pronote connector.
+     *
+     * [debugConnector] is the seam the screenshot harness uses to drive the real
+     * screens without a live Pronote account. It is inert in release builds: a
+     * published APK is not debuggable, so it always talks to the establishment's
+     * real server.
+     */
+    val dataSource: PronoteDataSource =
+        if (isDebuggable && debugConnector != null) debugConnector!!
+        else PronoteDirectDataSource()
 
     val networkMonitor = NetworkMonitor(appContext)
+
+    private val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
+
+    /** Version installée, affichée dans les réglages à côté de la version publiée. */
+    val installedVersionLabel: String =
+        "${packageInfo.versionName ?: "?"} (${PackageInfoCompat.getLongVersionCode(packageInfo)})"
+
+    /**
+     * La vérification de mise à jour n'existe que dans les builds publiés :
+     * un build de développement (tests, captures, démonstration) ne parle
+     * jamais au réseau tout seul.
+     */
+    val updateChecker: UpdateChecker? =
+        if (isDebuggable) null
+        else UpdateChecker(currentVersionCode = PackageInfoCompat.getLongVersionCode(packageInfo).toInt())
 
     val preferences = PreferencesStore(appContext)
 
@@ -88,4 +120,13 @@ class AppContainer(context: Context) {
     private var activeAccount: String? =
         appContext.getSharedPreferences("pronote_accounts", Context.MODE_PRIVATE)
             .getString("active", null)
+
+    companion object {
+        /**
+         * Swappable connector, set by tests only (never by the app). Debug-only:
+         * a release build ignores it entirely.
+         */
+        @Volatile
+        var debugConnector: PronoteDataSource? = null
+    }
 }

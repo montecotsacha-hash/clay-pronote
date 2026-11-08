@@ -15,23 +15,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pronote.clay.notifications.LocalNotifications
 import com.pronote.clay.ui.components.clay
-import com.pronote.clay.ui.screens.HomeScreen
 import com.pronote.clay.ui.screens.LoginScreen
-import com.pronote.clay.ui.screens.TimetableScreen
 import com.pronote.clay.ui.theme.AppTheme
 import com.pronote.clay.ui.viewmodel.HomeEvent
 import com.pronote.clay.ui.viewmodel.HomeUiState
 import com.pronote.clay.ui.viewmodel.HomeViewModel
-import com.pronote.clay.ui.viewmodel.TimetableViewModel
 
 /**
  * AppRoot — the top of the Compose tree.
@@ -46,9 +40,6 @@ fun AppRoot(viewModel: HomeViewModel) {
     val preferences by viewModel.preferences.collectAsState()
     val event by viewModel.events.collectAsState()
     val context = LocalContext.current
-
-    // Local navigation: the timetable is the only second-level screen for now.
-    var showTimetable by remember { mutableStateOf(false) }
 
     LaunchedEffect(event) {
         when (val current = event) {
@@ -82,11 +73,11 @@ fun AppRoot(viewModel: HomeViewModel) {
                         // A failed login has no local data to show: back to the form.
                         LoginScreen(viewModel = viewModel)
                     } else {
-                        HomeScreen(viewModel)
+                        AppShell(viewModel)
                     }
-                is HomeUiState.Success -> HomeScreen(viewModel)
-                is HomeUiState.Offline -> HomeScreen(viewModel)
-                is HomeUiState.SyncIssue -> HomeScreen(viewModel)
+                is HomeUiState.Success -> AppShell(viewModel)
+                is HomeUiState.Offline -> AppShell(viewModel)
+                is HomeUiState.SyncIssue -> AppShell(viewModel)
             }
         }
     }

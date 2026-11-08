@@ -4,7 +4,8 @@ const APK_URL = "/Ardoise.apk";
 const APK_NAME = "Ardoise.apk";
 
 /** Stagger helper: each block fades in slightly after the previous one. */
-const delay = (ms: number): CSSProperties => ({ "--d": `${ms}ms` }) as CSSProperties;
+const delay = (ms: number): CSSProperties =>
+  ({ "--d": `${ms}ms` }) as CSSProperties;
 
 const features = [
   {
@@ -73,10 +74,11 @@ export default function App() {
         className="reveal mx-auto max-w-5xl px-5 pt-10 pb-16 text-center sm:pt-16"
         style={delay(80)}
       >
-        <span className="clay-chip">Version 1.4.0 · Android 7.0 et plus · environ 12 Mo</span>
+        <span className="clay-chip">
+          Version 1.5.0 · Android 7.0 et plus · environ 12 Mo
+        </span>
         <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
-          Tes notes, enfin{" "}
-          <span className="text-[#9b7be0]">lisibles</span>.
+          Tes notes, enfin <span className="text-[#9b7be0]">lisibles</span>.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-[#6b5f87]">
           <strong className="font-extrabold">Ardoise</strong> est l'application
@@ -92,7 +94,10 @@ export default function App() {
           >
             ⬇️ Télécharger {APK_NAME}
           </a>
-          <a href="#installation" className="clay-btn clay-btn--soft w-full sm:w-auto">
+          <a
+            href="#installation"
+            className="clay-btn clay-btn--soft w-full sm:w-auto"
+          >
             Voir l'installation
           </a>
         </div>
@@ -102,7 +107,10 @@ export default function App() {
       </section>
 
       {/* Fonctionnalités */}
-      <section className="mx-auto max-w-5xl px-5 pb-16" aria-labelledby="fonctions">
+      <section
+        className="mx-auto max-w-5xl px-5 pb-16"
+        aria-labelledby="fonctions"
+      >
         <h2 id="fonctions" className="sr-only">
           Ce que fait l'application
         </h2>
@@ -144,7 +152,11 @@ export default function App() {
           </h2>
           <div className="mt-8 grid gap-7 sm:grid-cols-3">
             {steps.map((step, index) => (
-              <div key={step.n} className="reveal" style={delay(260 + index * 90)}>
+              <div
+                key={step.n}
+                className="reveal"
+                style={delay(260 + index * 90)}
+              >
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#9b7be0] text-base font-black text-white shadow-md">
                     {step.n}
@@ -177,11 +189,11 @@ export default function App() {
         <div className="clay-card mx-auto max-w-3xl p-6">
           <p className="font-semibold">Ardoise — application non officielle</p>
           <p className="mt-2 leading-relaxed">
-            Application indépendante, non affiliée à Index-Éducation. « Pronote »
-            est une marque de son éditeur ; Ardoise est un lecteur indépendant.
-            Tes identifiants sont transmis directement au serveur Pronote de
-            ton établissement pour la connexion ; le jeton de session est
-            chiffré sur ton appareil. Aucun serveur intermédiaire Ardoise.
+            Application indépendante, non affiliée à Index-Éducation. « Pronote
+            » est une marque de son éditeur ; Ardoise est un lecteur
+            indépendant. Tes identifiants sont transmis directement au serveur
+            Pronote de ton établissement pour la connexion ; le jeton de session
+            est chiffré sur ton appareil. Aucun serveur intermédiaire Ardoise.
           </p>
         </div>
         <p className="mt-6">Fait avec 💜 pour les lycéens</p>

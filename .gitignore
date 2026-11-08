@@ -2,3 +2,20 @@
 node_modules
 dist
 src/convex/_generated
+
+# Secrets locaux du deploiement du site
+.site-upload-token
+deploy/.dev.vars
+deploy/.wrangler
+
+# Cle de signature upload (Play) : ne jamais committer
+android/app/upload-keystore.jks
+android/app/keystore.properties
+
+# Chemin du SDK de la machine de developpement : propre a chaque poste.
+android/local.properties
+
+# Sorties de build Android : artefacts regeneres a chaque compilation
+android/app/build/
+android/.gradle/
+*.class

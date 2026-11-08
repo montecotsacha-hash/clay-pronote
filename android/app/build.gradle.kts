@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -12,17 +14,39 @@ android {
         applicationId = "com.pronote.clay"
         minSdk = 24
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.4.0"
+        versionCode = 12
+        versionName = "1.5.0"
+    }
+
+    // Publication (Google Play et site) : la release est signée avec la clé
+    // d'upload `upload-keystore.jks`, jamais avec la clé de debug que Google
+    // Play refuse. Les mots de passe vivent dans `keystore.properties`, un
+    // fichier local ignoré par git : sans lui, on retombe sur la clé de debug
+    // pour ne pas casser les builds, avec un avertissement explicite.
+    val keystorePropertiesFile = file("keystore.properties")
+    if (keystorePropertiesFile.exists()) {
+        val keystoreProperties = Properties()
+        keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+        signingConfigs {
+            create("upload") {
+                storeFile = file("upload-keystore.jks")
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            // Signed with the debug key so the produced APK installs on any device
-            // without extra keystore setup.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("upload")
+            } else {
+                logger.warn("keystore.properties absent : la release utilisera la clé de debug (refusée par Google Play).")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

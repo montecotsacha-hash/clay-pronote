@@ -1,12 +1,19 @@
 package com.pronote.clay.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,22 +24,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,11 +47,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -56,9 +64,8 @@ import com.pronote.clay.domain.Subject
 import com.pronote.clay.ui.components.ClayEmptyState
 import com.pronote.clay.ui.components.ClayErrorBox
 import com.pronote.clay.ui.components.ClayIconButton
-import com.pronote.clay.ui.screens.TimetableScreen
-import com.pronote.clay.ui.viewmodel.TimetableViewModel
 import com.pronote.clay.ui.components.ClayPill
+import com.pronote.clay.ui.components.ClayReveal
 import com.pronote.clay.ui.components.ClaySectionTitle
 import com.pronote.clay.ui.components.ClaySurface
 import com.pronote.clay.ui.components.clay
@@ -77,13 +84,17 @@ import java.util.Locale
  * Cache-first: the snapshot comes from local storage, so the screen is usable
  * even fully offline. Refreshing, offline and sync-error banners are derived
  * from the explicit [HomeUiState].
+ *
+ * The screen NEVER draws another screen on top of itself: the timetable and the
+ * settings are full sections of their own, reached from the navigation menu.
  */
 @Composable
-fun HomeScreen(viewModel: HomeViewModel) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    onOpenMenu: () -> Unit = {},
+) {
     val state by viewModel.state.collectAsState()
     val online by viewModel.online.collectAsState()
-    var showSettings by remember { mutableStateOf(false) }
-    var showTimetable by remember { mutableStateOf(false) }
 
     val success = state as? HomeUiState.Success
     val offline = state as? HomeUiState.Offline
@@ -94,16 +105,6 @@ fun HomeScreen(viewModel: HomeViewModel) {
     val average = success?.average ?: offline?.average ?: issue?.average
     val subjects = success?.subjects ?: offline?.subjects ?: issue?.subjects ?: error?.subjects.orEmpty()
     val refreshing = success?.refreshing ?: false
-
-    if (showSettings) {
-        SettingsSheet(viewModel = viewModel, onDismiss = { showSettings = false })
-    }
-    if (showTimetable) {
-        TimetableScreen(
-            viewModel = androidx.lifecycle.viewmodel.compose.viewModel { TimetableViewModel(viewModel.container) },
-            onBack = { showTimetable = false },
-        )
-    }
 
     LazyColumn(
         // The Activity draws edge-to-edge; keep the dashboard inside the
@@ -116,82 +117,148 @@ fun HomeScreen(viewModel: HomeViewModel) {
         ),
     ) {
         item {
-            HomeTopBar(
-                snapshot,
-                refreshing,
-                viewModel,
-                onSettings = { showSettings = true },
-                onTimetable = { showTimetable = true },
-            )
+            ClayReveal {
+                HomeTopBar(
+                    snapshot,
+                    refreshing,
+                    viewModel,
+                    onOpenMenu = onOpenMenu,
+                )
+            }
         }
         item { Spacer(Modifier.height(18.dp)) }
 
-        if (!online || offline != null) {
-            item { OfflineBanner(snapshot) }
-            item { Spacer(Modifier.height(14.dp)) }
-        }
-        if (issue != null) {
-            item {
-                ClayErrorBox(message = issue.message, hint = issue.hint)
-                Spacer(Modifier.height(14.dp))
-            }
-        }
-        if (error != null) {
-            item {
-                ClayErrorBox(message = error.message, hint = error.hint)
-                Spacer(Modifier.height(14.dp))
-            }
-        }
+        homeStatusBanners(
+            snapshot = snapshot,
+            online = online,
+            offline = offline != null,
+            issue = issue,
+            error = error,
+        )
 
-        if (average != null) {
-            item { AverageCard(average) }
-        } else {
-            item { ClayEmptyState("Pas encore de moyenne", "Connecte-toi et lance une synchronisation.") }
-        }
-        item { Spacer(Modifier.height(ClayDimens.SectionGap)) }
-
-    val history = snapshot?.history.orEmpty()
-    if (history.size >= 2) {
         item {
-            var periodDays by remember { mutableStateOf(com.pronote.clay.data.HistoryPeriods.ALL_DAYS) }
-
-            ClaySectionTitle("Évolution")
-            Spacer(Modifier.height(12.dp))
-            HistoryPeriodSelector(
-                selectedDays = periodDays,
-                onSelect = { periodDays = it },
-            )
-            Spacer(Modifier.height(10.dp))
-            HistoryChart(history, periodDays)
+            ClayReveal(index = 1) {
+                if (average != null) {
+                    AverageCard(average)
+                } else {
+                    ClayEmptyState("Pas encore de moyenne", "Connecte-toi et lance une synchronisation.")
+                }
+            }
         }
         item { Spacer(Modifier.height(ClayDimens.SectionGap)) }
+
+        homeHistorySection(snapshot?.history.orEmpty())
+        homeSubjectsSection(subjects)
+        homeGradesSection(snapshot)
     }
+}
 
+/** Bandeaux hors ligne, synchro partielle et erreur, au-dessus de la moyenne. */
+private fun LazyListScope.homeStatusBanners(
+    snapshot: com.pronote.clay.domain.SchoolSnapshot?,
+    online: Boolean,
+    offline: Boolean,
+    issue: HomeUiState.SyncIssue?,
+    error: HomeUiState.Error?,
+) {
+    if (!online || offline) {
         item {
-            ClaySectionTitle("Matières")
-            Spacer(Modifier.height(12.dp))
+            ClayReveal(index = 1) { OfflineBanner(snapshot) }
+            Spacer(Modifier.height(14.dp))
         }
-        if (subjects.isEmpty()) {
-            item { ClayEmptyState("Aucune matière", "Les matières apparaîtront après une synchronisation.") }
-        } else {
-            items(subjects, key = { it.subject.id }) { row ->
-                SubjectRowCard(row)
-                Spacer(Modifier.height(ClayDimens.ItemGap))
+    }
+    if (issue != null) {
+        item {
+            ClayReveal(index = 1) {
+                Column {
+                    ClayErrorBox(message = issue.message, hint = issue.hint)
+                    Spacer(Modifier.height(14.dp))
+                }
             }
         }
-
+    }
+    if (error != null) {
         item {
-            Spacer(Modifier.height(ClayDimens.SectionGap))
-            ClaySectionTitle("Notes récentes")
-            Spacer(Modifier.height(12.dp))
+            ClayReveal(index = 1) {
+                Column {
+                    ClayErrorBox(message = error.message, hint = error.hint)
+                    Spacer(Modifier.height(14.dp))
+                }
+            }
         }
-        val grades = snapshot?.grades.orEmpty().sortedByDescending { it.date }
-        if (grades.isEmpty()) {
-            item { ClayEmptyState("Aucune note", "Les nouvelles notes s'afficheront ici.") }
-        } else {
-            items(grades.take(8), key = { it.id }) { grade ->
-                GradeRowCard(grade, snapshot?.subjects)
-                Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Courbe d'évolution — masquée tant qu'il n'y a pas deux points à relier. */
+private fun LazyListScope.homeHistorySection(history: List<com.pronote.clay.domain.HistoryPoint>) {
+    if (history.size < 2) return
+
+    item {
+        var periodDays by remember { mutableStateOf(com.pronote.clay.data.HistoryPeriods.ALL_DAYS) }
+
+        ClayReveal(index = 2) {
+            Column {
+                ClaySectionTitle("Évolution")
+                Spacer(Modifier.height(12.dp))
+                HistoryPeriodSelector(
+                    selectedDays = periodDays,
+                    onSelect = { periodDays = it },
+                )
+                Spacer(Modifier.height(10.dp))
+                HistoryChart(history, periodDays)
+            }
+        }
+    }
+    item { Spacer(Modifier.height(ClayDimens.SectionGap)) }
+}
+
+/** Liste des matières, avec son état vide. */
+private fun LazyListScope.homeSubjectsSection(subjects: List<com.pronote.clay.domain.SubjectRow>) {
+    item {
+        ClayReveal(index = 3) {
+            Column {
+                ClaySectionTitle("Matières")
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+    }
+    if (subjects.isEmpty()) {
+        item { ClayEmptyState("Aucune matière", "Les matières apparaîtront après une synchronisation.") }
+    } else {
+        // `index` feeds the stagger so the subjects cascade down the list
+        // instead of all landing on the same frame.
+        itemsIndexed(subjects, key = { _, row -> row.subject.id }) { index, row ->
+            ClayReveal(index = 3 + index) {
+                Column {
+                    SubjectRowCard(row)
+                    Spacer(Modifier.height(ClayDimens.ItemGap))
+                }
+            }
+        }
+    }
+}
+
+/** Huit dernières notes, avec leur état vide. */
+private fun LazyListScope.homeGradesSection(snapshot: com.pronote.clay.domain.SchoolSnapshot?) {
+    item {
+        ClayReveal(index = 5) {
+            Column {
+                Spacer(Modifier.height(ClayDimens.SectionGap))
+                ClaySectionTitle("Notes récentes")
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+    }
+    val grades = snapshot?.grades.orEmpty().sortedByDescending { it.date }
+    if (grades.isEmpty()) {
+        item { ClayEmptyState("Aucune note", "Les nouvelles notes s'afficheront ici.") }
+    } else {
+        itemsIndexed(grades.take(8), key = { _, grade -> grade.id }) { index, grade ->
+            ClayReveal(index = 2 + index) {
+                Column {
+                    GradeRowCard(grade, snapshot?.subjects)
+                    Spacer(Modifier.height(8.dp))
+                }
             }
         }
     }
@@ -224,8 +291,7 @@ private fun HomeTopBar(
     snapshot: com.pronote.clay.domain.SchoolSnapshot?,
     refreshing: Boolean,
     viewModel: HomeViewModel,
-    onSettings: () -> Unit,
-    onTimetable: () -> Unit = {},
+    onOpenMenu: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -234,6 +300,8 @@ private fun HomeTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val preferences by viewModel.preferences.collectAsState()
+        ClayIconButton(Icons.Rounded.Menu, "Menu", onClick = onOpenMenu)
+        Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             val greeting = greetingName(
                 configured = preferences.displayName,
@@ -254,10 +322,6 @@ private fun HomeTopBar(
             )
         }
         RefreshButton(refreshing) { viewModel.refresh() }
-        Spacer(Modifier.width(10.dp))
-        ClayIconButton(Icons.Rounded.CalendarMonth, "Emploi du temps", onClick = onTimetable)
-        Spacer(Modifier.width(10.dp))
-        ClayIconButton(Icons.Rounded.Settings, "Réglages", onClick = onSettings)
     }
 }
 
@@ -317,8 +381,21 @@ private fun OfflineBanner(snapshot: com.pronote.clay.domain.SchoolSnapshot?) {
     }
 }
 
+/**
+ * The hero card. The average counts up from zero (or from its previous value
+ * after a sync) so the first screen never pops in statically.
+ */
 @Composable
 private fun AverageCard(average: com.pronote.clay.domain.AverageSummary) {
+    val animated = remember { Animatable(0f) }
+
+    LaunchedEffect(average.value) {
+        animated.animateTo(
+            targetValue = average.value.toFloat(),
+            animationSpec = tween(durationMillis = 760, easing = FastOutSlowInEasing),
+        )
+    }
+
     ClaySurface(modifier = Modifier.fillMaxWidth(), depth = 14.dp) {
         Row(
             Modifier.padding(ClayDimens.CardPadding),
@@ -327,7 +404,7 @@ private fun AverageCard(average: com.pronote.clay.domain.AverageSummary) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        average.display,
+                        AverageCalculator.formatAverage(animated.value.toDouble()),
                         fontSize = 52.sp,
                         lineHeight = 54.sp,
                         fontWeight = FontWeight.Black,
@@ -350,19 +427,33 @@ private fun AverageCard(average: com.pronote.clay.domain.AverageSummary) {
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
-            if (average.deltaDisplay != null) {
-                val up = (average.delta ?: 0.0) >= 0.0
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        average.deltaDisplay,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = if (up) Color(0xFF4E8C84) else MaterialTheme.colorScheme.error,
-                    )
-                    Text(
-                        "depuis la dernière note",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            val deltaDisplay = average.deltaDisplay
+            if (deltaDisplay != null) {
+                // The variation badge slides in *after* the average has counted
+                // up, so the eye follows the number before reading the change.
+                // A MutableTransitionState is required: `AnimatedVisibility`
+                // only animates on a state *change*, not on first composition.
+                val deltaVisible = remember { MutableTransitionState(false) }
+                deltaVisible.targetState = true
+                AnimatedVisibility(
+                    visibleState = deltaVisible,
+                    enter = fadeIn(tween(360, delayMillis = 260)) +
+                        expandHorizontally(tween(360, delayMillis = 260)),
+                    exit = fadeOut(tween(120)),
+                ) {
+                    val up = (average.delta ?: 0.0) >= 0.0
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            deltaDisplay,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = if (up) Color(0xFF4E8C84) else MaterialTheme.colorScheme.error,
+                        )
+                        Text(
+                            "depuis la dernière note",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -371,7 +462,9 @@ private fun AverageCard(average: com.pronote.clay.domain.AverageSummary) {
 
 /**
  * Period chips for the history chart — 7 jours, 1 mois, 3 mois, Année.
- * Purely visual state: the filtering itself is done in [HistoryChart].
+ *
+ * The selected chip scales up while the others settle back down, and the whole
+ * row animates instead of swapping colour in a single frame.
  */
 @Composable
 private fun HistoryPeriodSelector(
@@ -388,19 +481,27 @@ private fun HistoryPeriodSelector(
         periods.forEach { (days, label) ->
             val selected = selectedDays == days ||
                 (selectedDays == com.pronote.clay.data.HistoryPeriods.ALL_DAYS && days == com.pronote.clay.data.HistoryPeriods.YEAR_DAYS)
+            val chipScale by animateFloatAsState(
+                targetValue = if (selected) 1.06f else 0.96f,
+                animationSpec = tween(220),
+                label = "period-chip",
+            )
             ClayPill(
                 text = label,
                 tint = if (selected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.pointerInput(days) {
-                    // tap to switch period
-                    detectTapGestures { onSelect(days) }
-                },
+                modifier = Modifier.scale(chipScale),
+                onClick = { onSelect(days) },
             )
         }
     }
 }
 
+/**
+ * The evolution curve. The line draws itself left to right and the area under
+ * it fades in with the same progress, then the endpoint dot lands — so a period
+ * change reads as a movement instead of a jump cut.
+ */
 @Composable
 private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>, periodDays: Long = com.pronote.clay.data.HistoryPeriods.ALL_DAYS) {
     val accent = MaterialTheme.colorScheme.primary
@@ -410,6 +511,16 @@ private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>, pe
                 com.pronote.clay.data.PronoteRepositoryImpl.filterHistory(history, periodDays)
             }
             val points = if (scoped.size >= 2) scoped else history
+
+            val draw = remember { Animatable(0f) }
+            LaunchedEffect(points) {
+                draw.snapTo(0f)
+                draw.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(durationMillis = 820, easing = FastOutSlowInEasing),
+                )
+            }
+
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -419,6 +530,7 @@ private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>, pe
                 val min = (values.min() - 0.4).coerceAtLeast(0.0).toFloat()
                 val max = (values.max() + 0.4).toFloat()
                 val span = (max - min).takeIf { it > 0f } ?: 1f
+                val progress = draw.value
 
                 fun x(i: Int) = if (points.size == 1) size.width / 2 else i * size.width / (points.size - 1)
                 fun y(v: Double) = size.height - ((v.toFloat() - min) / span) * size.height
@@ -445,9 +557,21 @@ private fun HistoryChart(history: List<com.pronote.clay.domain.HistoryPoint>, pe
                     brush = Brush.verticalGradient(
                         listOf(accent.copy(alpha = 0.30f), Color.Transparent),
                     ),
+                    alpha = progress,
                 )
-                drawPath(line, color = accent, style = Stroke(width = 7f, cap = StrokeCap.Round))
-                drawCircle(accent, radius = 9f, center = androidx.compose.ui.geometry.Offset(x(points.size - 1), y(points.last().value)))
+
+                val measure = PathMeasure().apply { setPath(line, false) }
+                val drawn = Path()
+                measure.getSegment(0f, measure.length * progress, drawn, true)
+                drawPath(drawn, color = accent, style = Stroke(width = 7f, cap = StrokeCap.Round))
+
+                if (progress > 0.98f) {
+                    drawCircle(
+                        accent,
+                        radius = 9f,
+                        center = androidx.compose.ui.geometry.Offset(x(points.size - 1), y(points.last().value)),
+                    )
+                }
             }
         }
     }

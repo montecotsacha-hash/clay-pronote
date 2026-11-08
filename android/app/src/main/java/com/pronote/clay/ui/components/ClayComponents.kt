@@ -1,12 +1,16 @@
 package com.pronote.clay.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,22 +19,72 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.pronote.clay.data.remote.UpdateInfo
 import com.pronote.clay.ui.theme.ClayDimens
+
+/**
+ * ClayReveal — the shared entrance animation of the dashboard cards.
+ *
+ * A card fades in, rises from a few pixels below and puffs up from 96 % of its
+ * size, so the dashboard assembles itself instead of appearing all at once.
+ * [index] staggers the cards of a list (45 ms each, capped) so they cascade;
+ * the animation replays whenever the card re-enters the composition, which is
+ * exactly what happens when the user navigates back to a section or scrolls a
+ * list item into view. [key] lets a card replay when its *content* changes
+ * rather than only when it is composed.
+ */
+@Composable
+fun ClayReveal(
+    modifier: Modifier = Modifier,
+    index: Int = 0,
+    key: Any? = Unit,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val progress = remember { Animatable(0f) }
+
+    LaunchedEffect(key) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = 480,
+                delayMillis = index.coerceIn(0, 12) * 45,
+                easing = FastOutSlowInEasing,
+            ),
+        )
+    }
+
+    Box(
+        modifier = modifier.graphicsLayer {
+            val p = progress.value
+            alpha = p
+            translationY = (1f - p) * 40f
+            val s = 0.94f + 0.06f * p
+            scaleX = s
+            scaleY = s
+        },
+        content = content,
+    )
+}
 
 /**
  * ClaySurface — the base plush panel used across the whole app.
@@ -68,16 +122,39 @@ fun ClaySurface(
     }
 }
 
-/** Small pastel clay pill — badges, source labels, counts. */
+/**
+ * Small pastel clay pill — badges, source labels and, when [onClick] is given,
+ * the period chips. A clickable pill also gets a soft press squish so the
+ * selection feels like a physical object rather than a colour swap.
+ */
 @Composable
 fun ClayPill(
     text: String,
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.primary,
     icon: ImageVector? = null,
+    onClick: (() -> Unit)? = null,
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.93f else 1f, label = "pill-press")
+
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interaction,
+                        indication = null,
+                        role = Role.Button,
+                        onClick = onClick,
+                    )
+                } else Modifier,
+            ),
         shape = CircleShape,
         color = tint.copy(alpha = 0.24f),
         contentColor = tint,
@@ -321,4 +398,70 @@ fun ClayErrorBox(message: String, hint: String? = null, modifier: Modifier = Mod
             }
         }
     }
+}
+
+/**
+ * Confirmation gate for destructive actions (wiping local data…).
+ *
+ * Shared so the navigation menu and the settings screen ask the exact same
+ * question before anything irreversible happens.
+ */
+@Composable
+fun ConfirmDeleteDialog(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    if (!visible) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Supprimer tes données ?") },
+        text = {
+            Text(
+                "Le cache local, la session et les identifiants chiffrés de " +
+                    "cet appareil seront effacés définitivement.",
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Supprimer", color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annuler") }
+        },
+    )
+}
+
+/**
+ * Proposition de mise à jour : le site de distribution publie une version plus
+ * récente que celle installée.
+ *
+ * Partagée entre l'écran d'accueil et les réglages, comme la confirmation de
+ * suppression : la même question, posée de la même manière.
+ */
+@Composable
+fun UpdateAvailableDialog(
+    info: UpdateInfo,
+    onDownload: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Mise à jour disponible") },
+        text = {
+            Text(
+                buildString {
+                    append("Ardoise ")
+                    append(info.versionName ?: "plus récente")
+                    append(" est disponible sur le site de distribution. ")
+                    append("Android l'installera en conservant tes données et ta session.")
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDownload) { Text("Télécharger") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Plus tard") }
+        },
+    )
 }

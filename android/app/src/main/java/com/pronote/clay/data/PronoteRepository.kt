@@ -6,6 +6,7 @@ import com.pronote.clay.core.PronoteError
 import com.pronote.clay.core.PronoteResult
 import com.pronote.clay.data.local.LocalDataSource
 import com.pronote.clay.data.remote.PronoteCompatibilityLayer
+import com.pronote.clay.data.remote.PronoteLessonDto
 import com.pronote.clay.data.remote.PronoteRawPayload
 import com.pronote.clay.data.security.SecureCredentialsManager
 import com.pronote.clay.domain.AverageSource
@@ -175,16 +176,22 @@ class PronoteRepositoryImpl(
     ): PronoteResult<List<com.pronote.clay.domain.TimetableLesson>> {
         timetableCache["$accountId|$weekStartIso"]?.let { return PronoteResult.Success(it) }
 
-        val stored = sessions.load(accountId)
+        var stored = sessions.load(accountId)
             ?: return PronoteResult.Failure(PronoteError.SessionExpired)
 
-        val result = connector.fetchTimetable(
-            token = stored.token.orEmpty(),
-            schoolUrl = stored.schoolUrl,
-            username = stored.username,
-            deviceUuid = stored.deviceUuid.orEmpty(),
-            weekStartIso = weekStartIso,
-        )
+        var result = fetchTimetable(stored, weekStartIso)
+
+        if (result is PronoteResult.Failure) {
+            // Une seule reconnexion silencieuse, par la même chaîne que la
+            // synchronisation (jeton mobile, puis mot de passe) : un jeton
+            // périmé côté serveur ne doit jamais s'afficher comme de mauvais
+            // identifiants sur l'emploi du temps.
+            if (sessions.refreshSession(accountId) != null) {
+                stored = sessions.load(accountId) ?: return result
+                result = fetchTimetable(stored, weekStartIso)
+            }
+        }
+
         if (result is PronoteResult.Failure) return result
 
         val lessons = (result as PronoteResult.Success).value
@@ -193,6 +200,18 @@ class PronoteRepositoryImpl(
         timetableCache["$accountId|$weekStartIso"] = lessons
         return PronoteResult.Success(lessons)
     }
+
+    private suspend fun fetchTimetable(
+        stored: SecureCredentialsManager.StoredCredentials,
+        weekStartIso: String,
+    ): PronoteResult<List<PronoteLessonDto>> =
+        connector.fetchTimetable(
+            token = stored.token.orEmpty(),
+            schoolUrl = stored.schoolUrl,
+            username = stored.username,
+            deviceUuid = stored.deviceUuid.orEmpty(),
+            weekStartIso = weekStartIso,
+        )
 
     /** "Supprimer mes données" — snapshot, session metadata and secrets. */
     override suspend fun logout(accountId: String) {

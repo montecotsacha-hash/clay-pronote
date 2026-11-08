@@ -66,7 +66,9 @@ class TimetableViewModel(
     fun weekDays(): List<LocalDate> = (0 until 7).map { weekStart.plusDays(it.toLong()) }
 
     fun weekLabel(): String {
-        val end = weekStart.plusDays(5)
+        // Le bandeau montre les 7 jours (lundi -> dimanche) : le libellé
+        // s'arrêtait au samedi, une case avant la fin de la semaine affichée.
+        val end = weekStart.plusDays(6)
         val fmt = DateTimeFormatter.ofPattern("d MMM", Locale.FRENCH)
         return "Semaine du ${weekStart.format(fmt)} au ${end.format(fmt)}"
     }
@@ -79,6 +81,11 @@ class TimetableViewModel(
         val newStart = weekStart.plusWeeks(delta.toLong())
         _selectedDayIndex.value = if (delta > 0) 0 else 6
         loadWeek(newStart)
+    }
+
+    /** Retries the week currently on screen, after a failed load. */
+    fun reload() {
+        loadWeek(weekStart)
     }
 
     private fun loadWeek(start: LocalDate) {

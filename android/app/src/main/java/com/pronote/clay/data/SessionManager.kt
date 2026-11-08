@@ -3,6 +3,7 @@ package com.pronote.clay.data
 import com.pronote.clay.core.Logger
 import com.pronote.clay.core.PronoteError
 import com.pronote.clay.core.PronoteResult
+import com.pronote.clay.data.remote.PronoteAuthResult
 import com.pronote.clay.data.remote.PronoteCompatibilityLayer
 import com.pronote.clay.data.security.SecureCredentialsManager
 import com.pronote.clay.domain.PronoteSession
@@ -58,56 +59,49 @@ class SessionManager(
                 username = stored.username,
                 deviceUuid = stored.deviceUuid.orEmpty(),
             )
-            if (restored is PronoteResult.Success) {
-                val auth = restored.value
-                vault.save(
-                    accountId,
-                    stored.copy(
-                        token = auth.token,
-                        schoolName = auth.schoolName,
-                        expiresAt = auth.expiresAt,
-                        deviceUuid = auth.deviceUuid ?: stored.deviceUuid,
-                    ),
-                )
-                return PronoteResult.Success(
-                    PronoteSession(
-                        token = auth.token,
-                        expiresAt = auth.expiresAt,
-                        schoolUrl = stored.schoolUrl,
-                        schoolName = auth.schoolName,
-                        connected = true,
-                    ),
-                )
-            }
+            if (restored is PronoteResult.Success) return commit(accountId, stored, restored.value)
         }
 
         stored.password?.let { password ->
             val reauth = connector.authenticate(stored.schoolUrl, stored.username, password)
-            if (reauth is PronoteResult.Success) {
-                val auth = reauth.value
-                vault.save(
-                    accountId,
-                    stored.copy(
-                        token = auth.token,
-                        schoolName = auth.schoolName,
-                        expiresAt = auth.expiresAt,
-                        deviceUuid = auth.deviceUuid ?: stored.deviceUuid,
-                    ),
-                )
-                return PronoteResult.Success(
-                    PronoteSession(
-                        token = auth.token,
-                        expiresAt = auth.expiresAt,
-                        schoolUrl = stored.schoolUrl,
-                        schoolName = auth.schoolName,
-                        connected = true,
-                    ),
-                )
-            }
+            if (reauth is PronoteResult.Success) return commit(accountId, stored, reauth.value)
         }
 
         Logger.warn("Session restore failed (token and password)")
         return PronoteResult.Failure(PronoteError.SessionExpired)
+    }
+
+    /**
+     * Enregistre la session obtenue par une reconnexion et la transmet à
+     * l'appelant — le seul endroit qui décide ce qui est gardé dans le vault.
+     *
+     * Un login par identifiants ne renvoie pas toujours de jeton mobile : ne
+     * jamais écraser un jeton valide par une valeur vide, sinon la reconnexion
+     * suivante part avec un jeton vide et échoue en « mauvais mot de passe ».
+     */
+    private fun commit(
+        accountId: String,
+        stored: SecureCredentialsManager.StoredCredentials,
+        auth: PronoteAuthResult,
+    ): PronoteResult<PronoteSession> {
+        vault.save(
+            accountId,
+            stored.copy(
+                token = auth.token.takeIf { it.isNotBlank() } ?: stored.token,
+                schoolName = auth.schoolName,
+                expiresAt = auth.expiresAt,
+                deviceUuid = auth.deviceUuid ?: stored.deviceUuid,
+            ),
+        )
+        return PronoteResult.Success(
+            PronoteSession(
+                token = auth.token,
+                expiresAt = auth.expiresAt,
+                schoolUrl = stored.schoolUrl,
+                schoolName = auth.schoolName,
+                connected = true,
+            ),
+        )
     }
 
     /** Attempt a refresh; null when the session cannot be salvaged. */

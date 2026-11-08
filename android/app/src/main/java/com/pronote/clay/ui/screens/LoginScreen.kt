@@ -75,69 +75,20 @@ fun LoginScreen(viewModel: HomeViewModel) {
     ) {
         Spacer(Modifier.height(32.dp))
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Box(
-                Modifier
-                    .size(64.dp)
-                    .clay(depth = 14.dp, tint = MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Rounded.School,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(30.dp),
-                )
-            }
-            Spacer(Modifier.height(18.dp))
-            Text("Ardoise", style = MaterialTheme.typography.headlineLarge)
-            Text(
-                "Tes notes, hors ligne, en un clin d'œil.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        LoginHeader()
 
         Spacer(Modifier.height(34.dp))
-        ClaySectionTitle("Connexion")
-        Spacer(Modifier.height(14.dp))
-
-        ClayField(
-            value = draft.schoolUrl,
-            onValueChange = { viewModel.updateLoginSchoolUrl(it) },
-            label = "Adresse Pronote de l'établissement",
-            leading = { Icon(Icons.Rounded.School, contentDescription = null, Modifier.size(18.dp)) },
-            keyboardType = KeyboardType.Uri,
+        LoginFields(
+            schoolUrl = draft.schoolUrl,
+            username = draft.username,
+            password = draft.password,
+            error = error,
+            showPassword = showPassword,
+            onTogglePassword = { showPassword = !showPassword },
+            onSchoolUrlChange = { viewModel.updateLoginSchoolUrl(it) },
+            onUsernameChange = { viewModel.updateLoginUsername(it) },
+            onPasswordChange = { viewModel.updateLoginPassword(it) },
         )
-        Spacer(Modifier.height(12.dp))
-        ClayField(
-            value = draft.username,
-            onValueChange = { viewModel.updateLoginUsername(it) },
-            label = "Identifiant",
-            leading = { Icon(Icons.Rounded.Person, contentDescription = null, Modifier.size(18.dp)) },
-        )
-        Spacer(Modifier.height(12.dp))
-        ClayField(
-            value = draft.password,
-            onValueChange = { viewModel.updateLoginPassword(it) },
-            label = "Mot de passe",
-            leading = { Icon(Icons.Rounded.Lock, contentDescription = null, Modifier.size(18.dp)) },
-            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            trailing = {
-                IconButton(onClick = { showPassword = !showPassword }) {
-                    Icon(
-                        if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                        contentDescription = if (showPassword) "Masquer" else "Afficher",
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            },
-        )
-
-        if (error != null) {
-            Spacer(Modifier.height(16.dp))
-            ClayErrorBox(message = error.message, hint = error.hint)
-        }
 
         Spacer(Modifier.height(22.dp))
         ClayButton(
@@ -154,25 +105,109 @@ fun LoginScreen(viewModel: HomeViewModel) {
                 draft.username.isNotBlank() && draft.password.isNotBlank(),
         )
 
-        Spacer(Modifier.height(26.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            ClayPill(text = "Connexion directe à Pronote", tint = MaterialTheme.colorScheme.tertiary)
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(
-            "Saisis l'adresse de ton espace élève, puis tes identifiants Pronote. " +
-                "Ils sont transmis directement au serveur de ton établissement, pas à un serveur Ardoise. " +
-                "Seul le jeton de session est conservé chiffré sur cet appareil. " +
-                "Les connexions via un ENT ne sont pas prises en charge.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        LoginHelpNote()
 
         Spacer(Modifier.height(40.dp))
     }
+}
+
+@Composable
+private fun LoginFields(
+    schoolUrl: String,
+    username: String,
+    password: String,
+    error: HomeUiState.Error?,
+    showPassword: Boolean,
+    onTogglePassword: () -> Unit,
+    onSchoolUrlChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+) {
+    ClaySectionTitle("Connexion")
+    Spacer(Modifier.height(14.dp))
+
+    ClayField(
+        value = schoolUrl,
+        onValueChange = onSchoolUrlChange,
+        label = "Adresse Pronote de l'établissement",
+        leading = { Icon(Icons.Rounded.School, contentDescription = null, Modifier.size(18.dp)) },
+        keyboardType = KeyboardType.Uri,
+    )
+    Spacer(Modifier.height(12.dp))
+    ClayField(
+        value = username,
+        onValueChange = onUsernameChange,
+        label = "Identifiant",
+        leading = { Icon(Icons.Rounded.Person, contentDescription = null, Modifier.size(18.dp)) },
+    )
+    Spacer(Modifier.height(12.dp))
+    ClayField(
+        value = password,
+        onValueChange = onPasswordChange,
+        label = "Mot de passe",
+        leading = { Icon(Icons.Rounded.Lock, contentDescription = null, Modifier.size(18.dp)) },
+        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+        trailing = {
+            IconButton(onClick = onTogglePassword) {
+                Icon(
+                    if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                    contentDescription = if (showPassword) "Masquer" else "Afficher",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        },
+    )
+
+    if (error != null) {
+        Spacer(Modifier.height(16.dp))
+        ClayErrorBox(message = error.message, hint = error.hint)
+    }
+}
+
+@Composable
+private fun LoginHeader() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .size(64.dp)
+                .clay(depth = 14.dp, tint = MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.School,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(30.dp),
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+        Text("Ardoise", style = MaterialTheme.typography.headlineLarge)
+        Text(
+            "Tes notes, hors ligne, en un clin d'œil.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun LoginHelpNote() {
+    Spacer(Modifier.height(26.dp))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        ClayPill(text = "Connexion directe à Pronote", tint = MaterialTheme.colorScheme.tertiary)
+    }
+    Spacer(Modifier.height(10.dp))
+    Text(
+        "Saisis l'adresse de ton espace élève, puis tes identifiants Pronote. " +
+            "Ils sont transmis directement au serveur de ton établissement, pas à un serveur Ardoise. " +
+            "Seul le jeton de session est conservé chiffré sur cet appareil. " +
+            "Les connexions via un ENT ne sont pas prises en charge.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

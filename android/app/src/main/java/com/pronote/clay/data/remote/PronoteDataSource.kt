@@ -149,45 +149,30 @@ class PronoteCompatibilityLayer(private val source: PronoteDataSource) {
         schoolUrl: String,
         username: String,
         password: String,
-    ): PronoteResult<PronoteAuthResult> =
-        try {
-            source.authenticate(schoolUrl, username, password)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            PronoteResult.Failure(normalize(error))
-        }
+    ): PronoteResult<PronoteAuthResult> = guard {
+        source.authenticate(schoolUrl, username, password)
+    }
 
     suspend fun restoreSession(
         token: String,
         schoolUrl: String,
         username: String,
         deviceUuid: String,
-    ): PronoteResult<PronoteAuthResult> =
-        try {
-            source.restoreSession(token, schoolUrl, username, deviceUuid)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            PronoteResult.Failure(normalize(error))
-        }
+    ): PronoteResult<PronoteAuthResult> = guard {
+        source.restoreSession(token, schoolUrl, username, deviceUuid)
+    }
 
     suspend fun fetchAll(
         token: String,
         schoolUrl: String,
         username: String,
         deviceUuid: String,
-    ): PronoteResult<PronoteRawPayload> =
-        try {
-            when (val result = source.fetchAll(token, schoolUrl, username, deviceUuid)) {
-                is PronoteResult.Success -> PronoteResult.Success(assertPayload(result.value))
-                is PronoteResult.Failure -> result
-            }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            PronoteResult.Failure(normalize(error))
+    ): PronoteResult<PronoteRawPayload> = guard {
+        when (val result = source.fetchAll(token, schoolUrl, username, deviceUuid)) {
+            is PronoteResult.Success -> PronoteResult.Success(assertPayload(result.value))
+            is PronoteResult.Failure -> result
         }
+    }
 
     suspend fun fetchTimetable(
         token: String,
@@ -195,14 +180,9 @@ class PronoteCompatibilityLayer(private val source: PronoteDataSource) {
         username: String,
         deviceUuid: String,
         weekStartIso: String,
-    ): PronoteResult<List<PronoteLessonDto>> =
-        try {
-            source.fetchTimetable(token, schoolUrl, username, deviceUuid, weekStartIso)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            PronoteResult.Failure(normalize(error))
-        }
+    ): PronoteResult<List<PronoteLessonDto>> = guard {
+        source.fetchTimetable(token, schoolUrl, username, deviceUuid, weekStartIso)
+    }
 
     suspend fun logout(token: String) {
         // Logging out must never fail loudly: the local session is cleared anyway.
@@ -214,6 +194,21 @@ class PronoteCompatibilityLayer(private val source: PronoteDataSource) {
             Logger.warn("Connector logout failed")
         }
     }
+
+    /**
+     * Exécute un appel du connecteur en traduisant toute exception en échec typé.
+     *
+     * Seule l'annulation de coroutine remonte telle quelle : elle signifie que
+     * l'appelant a abandonné, pas que Pronote a échoué.
+     */
+    private suspend fun <T> guard(block: suspend () -> PronoteResult<T>): PronoteResult<T> =
+        try {
+            block()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            PronoteResult.Failure(normalize(error))
+        }
 
     private fun assertPayload(payload: PronoteRawPayload): PronoteRawPayload = payload
 

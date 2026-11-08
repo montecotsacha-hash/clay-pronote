@@ -1,0 +1,16 @@
+{
+  // Configuration locale uniquement : elle sert à vérifier le Worker dans le
+  // vrai runtime workerd (wrangler dev) avant tout déploiement. Le déploiement
+  // passe par site.manifest.json ; le bucket et le jeton ci-dessous sont des
+  // valeurs locales, jetables, propres à cette machine.
+  "name": "ardoise-site-local",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-16",
+  "assets": {
+    "directory": "./assets",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "ardoise-local" }]
+}

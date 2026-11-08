@@ -208,6 +208,10 @@ class FakePronoteDataSource : PronoteDataSource {
             PronoteLessonDto("francais", "Français", "M. Leroy", "A101", null, at(3, 13, 30), at(3, 15, 0)),
             PronoteLessonDto("physique", "Physique-Chimie", "M. Bernard", "Labo 2", null, at(4, 8, 0), at(4, 9, 30)),
             PronoteLessonDto("histoire", "Histoire-Géo", "Mme Petit", "A305", null, at(4, 10, 20), at(4, 11, 20)),
+            // Deux groupes en parallèle : même matière à la même heure. C'est
+            // le cas de figure qui faisait planter la liste (clés dupliquées).
+            PronoteLessonDto("maths", "Mathématiques", "Mme Dubois", "B204", "Groupe A", at(1, 14, 0), at(1, 15, 0)),
+            PronoteLessonDto("maths", "Mathématiques", "Mme Dubois", "B206", "Groupe B", at(1, 14, 0), at(1, 15, 0)),
         )
         return PronoteResult.Success(lessons)
     }

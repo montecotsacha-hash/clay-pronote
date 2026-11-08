@@ -9,13 +9,18 @@ import com.pronote.clay.domain.AverageSummary
 import com.pronote.clay.domain.Preferences
 import com.pronote.clay.domain.SchoolSnapshot
 import com.pronote.clay.domain.SubjectRow
+import com.pronote.clay.data.remote.UpdateChecker
+import com.pronote.clay.data.remote.UpdateStatus
 import com.pronote.clay.notifications.LocalNotifications
 import com.pronote.clay.notifications.PendingNotification
 import com.pronote.clay.sync.SyncManager
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Explicit UI state, mirroring the product spec:
@@ -81,10 +86,20 @@ sealed interface HomeEvent {
  * case or the SyncManager. It renders cached data first, then refreshes
  * silently in the background.
  */
-class HomeViewModel(internal val container: AppContainer) : ViewModel() {
+class HomeViewModel(
+    internal val container: AppContainer,
+    // Nul dans les builds de développement : la vérification automatique ne
+    // tourne que dans l'APK publié. Les tests injectent un factice.
+    private val updateChecker: UpdateChecker? = container.updateChecker,
+    // La lecture du manifeste est bloquante : toujours hors du fil principal.
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : ViewModel() {
 
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    private val _updateStatus = MutableStateFlow<UpdateStatus>(UpdateStatus.Idle)
+    val updateStatus: StateFlow<UpdateStatus> = _updateStatus.asStateFlow()
 
     private val _events = MutableStateFlow<HomeEvent?>(null)
     val events: StateFlow<HomeEvent?> = _events.asStateFlow()
@@ -123,6 +138,35 @@ class HomeViewModel(internal val container: AppContainer) : ViewModel() {
             }
         }
         loadFromCacheThenRefresh()
+        // Vérification silencieuse au lancement : rien ne s'affiche tant
+        // qu'aucune version plus récente n'est publiée.
+        updateChecker?.let { checkWith(it) }
+    }
+
+    /** Compare la version installée à celle publiée sur le site de distribution. */
+    fun checkForUpdate() {
+        val checker = updateChecker
+        if (checker == null) {
+            _updateStatus.value = UpdateStatus.Unavailable
+            return
+        }
+        checkWith(checker)
+    }
+
+    private fun checkWith(checker: UpdateChecker) {
+        if (_updateStatus.value is UpdateStatus.Checking) return
+        _updateStatus.value = UpdateStatus.Checking
+        viewModelScope.launch {
+            _updateStatus.value = withContext(ioDispatcher) { checker.check() }
+        }
+    }
+
+    /** « Plus tard » : la proposition n'est plus imposée, mais reste en réglages. */
+    fun dismissUpdate() {
+        val current = _updateStatus.value
+        if (current is UpdateStatus.Available) {
+            _updateStatus.value = current.copy(promptVisible = false)
+        }
     }
 
     /** Step 1: show local data instantly. Step 2: refresh silently. */

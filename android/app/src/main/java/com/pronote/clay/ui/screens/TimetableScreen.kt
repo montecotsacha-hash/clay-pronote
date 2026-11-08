@@ -1,6 +1,9 @@
 package com.pronote.clay.ui.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,10 +20,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,6 +34,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.EventBusy
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,14 +43,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,6 +58,8 @@ import androidx.compose.ui.unit.sp
 import com.pronote.clay.domain.TimetableLesson
 import com.pronote.clay.ui.components.ClayEmptyState
 import com.pronote.clay.ui.components.ClayPill
+import com.pronote.clay.ui.components.ClayReveal
+import com.pronote.clay.ui.components.ClaySecondaryButton
 import com.pronote.clay.ui.components.ClaySurface
 import com.pronote.clay.ui.components.clay
 import com.pronote.clay.ui.theme.ClayDimens
@@ -62,6 +71,14 @@ import java.util.Date
 import java.util.Locale
 
 private val DAY_NAMES = listOf("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+
+/**
+ * Le bandeau pose sept colonnes à côté d'un point de 34 dp : « Dimanche » sur
+ * une ligne n'y tient pas et se coupait en « Dimanch / e » sur un écran de
+ * 411 dp. Les formes abrégées gardent la puce lisible sur un écran étroit.
+ */
+private val DAY_SHORT_NAMES =
+    listOf("Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam.", "Dim.")
 
 /**
  * TimetableScreen — the week schedule.
@@ -78,24 +95,30 @@ fun TimetableScreen(
     val selectedDay by viewModel.selectedDayIndex.collectAsState()
 
     Column(
+        // The Activity draws edge-to-edge: without this the title bar and its
+        // back arrow are drawn UNDER the system status bar (clock, battery).
+        // Same treatment as the dashboard, the login form and the settings.
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .safeDrawingPadding(),
     ) {
         TimetableTopBar(onBack = onBack)
-        WeekStrip(
-            weekDays = viewModel.weekDays(),
-            selectedIndex = selectedDay,
-            onSelect = viewModel::selectDay,
-            onPrevWeek = { viewModel.shiftWeek(-1) },
-            onNextWeek = { viewModel.shiftWeek(1) },
-            weekLabel = viewModel.weekLabel(),
-        )
+        ClayReveal(index = 1) {
+            WeekStrip(
+                weekDays = viewModel.weekDays(),
+                selectedIndex = selectedDay,
+                onSelect = viewModel::selectDay,
+                onPrevWeek = { viewModel.shiftWeek(-1) },
+                onNextWeek = { viewModel.shiftWeek(1) },
+                weekLabel = viewModel.weekLabel(),
+            )
+        }
 
         Box(Modifier.fillMaxSize()) {
             when (val current = state) {
                 is TimetableUiState.Loading -> LoadingColumn()
-                is TimetableUiState.Error -> ErrorColumn(current.message)
+                is TimetableUiState.Error -> ErrorColumn(current.message, onRetry = viewModel::reload)
                 is TimetableUiState.Ready -> DayContent(
                     state = current,
                     dayIndex = selectedDay,
@@ -147,7 +170,10 @@ private fun WeekStrip(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onPrevWeek, modifier = Modifier.size(32.dp)) {
+                // Aucune taille imposée : IconButton embarque la cible tactile
+                // minimale (48 dp). L'ancien `size(32.dp)` la réduisait sous ce
+                // seuil et rendait les flèches difficiles à toucher.
+                IconButton(onClick = onPrevWeek) {
                     Icon(Icons.Rounded.ChevronLeft, contentDescription = "Semaine précédente", modifier = Modifier.size(20.dp))
                 }
                 Text(
@@ -156,31 +182,57 @@ private fun WeekStrip(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = onNextWeek, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = onNextWeek) {
                     Icon(Icons.Rounded.ChevronRight, contentDescription = "Semaine suivante", modifier = Modifier.size(20.dp))
                 }
             }
             Row(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth().selectableGroup(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 weekDays.forEachIndexed { index, date ->
                     val selected = index == selectedIndex
                     val isToday = date == java.time.LocalDate.now()
+                    // The selected dot grows, deepens and fills in instead of
+                    // snapping to a new colour on a single frame.
+                    val dotScale by animateFloatAsState(
+                        targetValue = if (selected) 1f else 0.9f,
+                        animationSpec = tween(220),
+                        label = "day-dot-scale",
+                    )
+                    val dotDepth by animateDpAsState(
+                        targetValue = if (selected) 6.dp else 2.dp,
+                        animationSpec = tween(220),
+                        label = "day-dot-depth",
+                    )
+                    val dotTint by animateColorAsState(
+                        targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        animationSpec = tween(220),
+                        label = "day-dot-tint",
+                    )
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .weight(1f)
+                            // Le jour entier (pastille + libellé) est une vraie
+                            // cible de sélection. Avant, ces éléments ne
+                            // répondaient pas au doigt : `onSelect` n'était
+                            // jamais appelé.
+                            .selectable(
+                                selected = selected,
+                                role = Role.Tab,
+                                onClick = { onSelect(index) },
+                            )
                             .padding(vertical = 4.dp),
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
+                                .scale(dotScale)
                                 .clay(
-                                    depth = if (selected) 6.dp else 2.dp,
+                                    depth = dotDepth,
                                     shape = CircleShape,
-                                    tint = if (selected) MaterialTheme.colorScheme.primary
-                                    else Color.Transparent,
+                                    tint = dotTint,
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -193,11 +245,12 @@ private fun WeekStrip(
                             )
                         }
                         Text(
-                            DAY_NAMES[valueDayIndex(date)],
+                            text = DAY_SHORT_NAMES[valueDayIndex(date)],
                             style = MaterialTheme.typography.labelSmall,
                             color = if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            maxLines = 1,
                         )
                     }
                 }
@@ -231,7 +284,7 @@ private fun LoadingColumn() {
 }
 
 @Composable
-private fun ErrorColumn(message: String) {
+private fun ErrorColumn(message: String, onRetry: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -239,7 +292,17 @@ private fun ErrorColumn(message: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        ClayEmptyState("Emploi du temps indisponible", message)
+        ClayReveal {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                ClayEmptyState("Emploi du temps indisponible", message)
+                Spacer(Modifier.height(16.dp))
+                ClaySecondaryButton(
+                    text = "Réessayer",
+                    onClick = onRetry,
+                    icon = Icons.Rounded.Refresh,
+                )
+            }
+        }
     }
 }
 
@@ -251,14 +314,39 @@ private fun DayContent(
     onSwipe: (Int) -> Unit,
 ) {
     val total = 7
+    // Le bloc de pointerInput n'est relancé que quand sa clé change : sans ces
+    // états, le geste garderait l'index de la première composition et le
+    // deuxième balayage ne ferait plus rien.
+    val currentIndex by rememberUpdatedState(dayIndex)
+    val swipeTo by rememberUpdatedState(onSwipe)
+
     Box(
         Modifier
             .fillMaxSize()
             .pointerInput(total) {
-                detectHorizontalDragGestures { change, dragAmount ->
+                // C'est la trajectoire entière qui compte, pas le pas entre
+                // deux frames : un glissement lent finit par déclencher, et un
+                // geste rapide ne fait avancer que d'un seul jour.
+                val threshold = 48.dp.toPx()
+                var accumulated = 0f
+                var triggered = false
+
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        accumulated = 0f
+                        triggered = false
+                    },
+                ) { change, dragAmount ->
                     change.consume()
-                    if (dragAmount < -40 && dayIndex < total - 1) onSwipe(dayIndex + 1)
-                    if (dragAmount > 40 && dayIndex > 0) onSwipe(dayIndex - 1)
+                    accumulated += dragAmount
+                    if (triggered) return@detectHorizontalDragGestures
+                    if (accumulated <= -threshold && currentIndex < total - 1) {
+                        triggered = true
+                        swipeTo(currentIndex + 1)
+                    } else if (accumulated >= threshold && currentIndex > 0) {
+                        triggered = true
+                        swipeTo(currentIndex - 1)
+                    }
                 }
             },
     ) {
@@ -324,8 +412,13 @@ private fun LessonList(
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
-        items(lessons, key = { it.startIso + it.subjectName }) { lesson ->
-            LessonCard(lesson)
+        // L'index garantit l'unicité : deux groupes parallèles (même matière à
+        // la même heure, groupes différents) donnaient la même clé et faisaient
+        // planter la liste.
+        itemsIndexed(lessons, key = { index, lesson -> "$index-${lesson.startIso}-${lesson.subjectName}" }) { index, lesson ->
+            ClayReveal(index = index + 2) {
+                LessonCard(lesson)
+            }
         }
     }
 }
