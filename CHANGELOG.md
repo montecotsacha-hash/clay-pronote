@@ -11,10 +11,11 @@ la navigation et au papier — rien de plus.
 
 ## Versions
 
+- `1.6.0` — « Cadran » — 14 novembre 2026 : session qui se répare toute seule (plus de déconnexion/reconnexion à faire), alertes calculées en arrière-plan toutes les heures, liste des notes allégée et fiche détaillée qui monte du bas au toucher.
 - `1.5.0` — « Boussole » — 14 novembre 2026 : emploi du temps fiabilisé (une section à la fois, cours du bon jour, groupes parallèles), vérification de mise à jour depuis le site, connecteur Pronote découpé et allégé. Premier publipostage complet du site et des releases.
 - `1.4.0` — « Écho » — octobre 2026 : notes, moyennes et appréciations hors ligne, thème sombre, widgets.
 
 ## Liste de réserve (noms pas encore utilisés)
 
-Cadran, Dérive, Fanion, Gouvernail, Halo, Ivoire, Jetée, Kabig, Lisière,
-Mâture, Nasse, Quille.
+Dérive, Fanion, Gouvernail, Halo, Ivoire, Jetée, Kabig, Lisière, Mâture,
+Nasse, Quille, Ralingue.

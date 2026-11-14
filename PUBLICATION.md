@@ -40,11 +40,11 @@ un compte Play public personnel gratuit :
 | Élément                     | Valeur                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
 | `applicationId`             | `com.pronote.clay`                                                                         |
-| Version                     | 1.5.0 « Boussole » (versionCode 12)                                                        |
+| Version                     | 1.6.0 « Cadran » (versionCode 13)                                                          |
 | Android minimum / cible     | API 24 (7.0) / API 35                                                                      |
-| APK signé (site + releases) | `Ardoise.apk` — SHA-256 `8922939c65ed8a0303f0f9fab7a1b6d3c79bfbcf4076b8797c7bb182262d534b` |
-| Bundle pour magasins        | `Ardoise.aab` — SHA-256 `465e3e37553b9c0e35c09d82513358fb6b7cc3f89054d36400bf535a71759187` |
-| Clé d'upload                | `android/app/upload-keystore.jks` (RSA 4096, valable 30 ans), hors git                     |
+| APK signé (site + releases) | `Ardoise.apk` — SHA-256 `071a2ea6afab76ee126afa5b0ac5e85520aa0445d6dcd5144cd338988d3766f6` |
+| Bundle pour magasins        | `Ardoise.aab` — SHA-256 `f0aa8c466ef3ec744f59fe1ad4aff329d2e8dc1f8fd3f962ed818522d3afa082` |
+| Clé d'upload                | `android/app/upload-keystore.jks` (RSA 4096, valable 30 ans, créée le 14/11/2026), hors git |
 | Mots de passe de la clé     | `android/app/keystore.properties`, hors git                                                |
 | Captures d'écran            | `screenshots/` (page d'accueil : captures Play de l'app à produire)                        |
 | Page de téléchargement      | <https://ardoise.freebuff.page>                                                            |
@@ -95,7 +95,22 @@ Côté utilisateur, la mise à jour automatique se fait avec **Obtainium** : ajo
 l'URL des releases (`https://github.com/montecotsacha-hash/ardoise/releases`)
 dans l'app, qui suit ensuite chaque nouvelle version sans magasin.
 
-## Cohérence de signature : alignée le 16 octobre
+## Changement de clé de signature à la 1.6.0 (14 novembre 2026)
+
+La clé utilisée jusqu'à la 1.5.0 a été perdue (plus aucun `upload-keystore.jks` sur
+le poste de développement, absent aussi de l'historique git). La 1.6.0 est donc
+signée avec une **nouvelle clé d'upload** `CN=Ardoise` (RSA 4096, empreinte
+SHA-256 du certificat `c1c433d6a19ee91958d1aa694b0fd6c19a0e2bfbb1eb2798c7f7669f1dcf4d95`).
+
+Conséquence à annoncer clairement aux utilisateurs : Android refuse une mise à
+jour quand la signature change. Une installation en 1.5.0 ou antérieure doit être
+**désinstallée puis réinstallée** une fois en 1.6.0 (les données locales de
+l'application sont perdues, elles se retéléchargent à la reconnexion). Toutes les
+mises à jour suivantes seront de nouveau transparentes, à condition de conserver
+cette nouvelle clé : **sauvegarde `upload-keystore.jks` + `keystore.properties`
+maintenant**.
+
+## Cohérence de signature avant la 1.6.0
 
 Tous les canaux partagent désormais **un seul signataire : `CN=Ardoise`, la
 clé d'upload** :

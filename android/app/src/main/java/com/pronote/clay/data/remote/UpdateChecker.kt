@@ -69,7 +69,7 @@ class UpdateChecker(
 
     companion object {
         /** Le site qui sert l'APK et son manifeste de version. */
-        const val SITE_URL = "https://site-212736d17ebe48aea4f786a17c2d27ff.freebuff.page"
+        const val SITE_URL = "https://ardoise.freebuff.page"
 
         const val VERSION_PATH = "/version.json"
 
