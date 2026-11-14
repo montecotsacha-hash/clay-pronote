@@ -1,19 +1,27 @@
 package com.pronote.clay.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +31,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -56,11 +65,13 @@ import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pronote.clay.core.AverageCalculator
 import com.pronote.clay.domain.Grade
 import com.pronote.clay.domain.Subject
+import com.pronote.clay.ui.components.ClayButton
 import com.pronote.clay.ui.components.ClayEmptyState
 import com.pronote.clay.ui.components.ClayErrorBox
 import com.pronote.clay.ui.components.ClayIconButton
@@ -106,6 +117,11 @@ fun HomeScreen(
     val subjects = success?.subjects ?: offline?.subjects ?: issue?.subjects ?: error?.subjects.orEmpty()
     val refreshing = success?.refreshing ?: false
 
+    // La note ouverte dans la fiche du bas. La liste ne montre que l'essentiel :
+    // le détail vit ici, dans un panneau qui monte du bas.
+    var selectedGrade by remember { mutableStateOf<Grade?>(null) }
+
+    Box(Modifier.fillMaxSize()) {
     LazyColumn(
         // The Activity draws edge-to-edge; keep the dashboard inside the
         // status-bar/display-cutout and navigation-bar safe areas.
@@ -149,7 +165,19 @@ fun HomeScreen(
 
         homeHistorySection(snapshot?.history.orEmpty())
         homeSubjectsSection(subjects)
-        homeGradesSection(snapshot)
+        homeGradesSection(snapshot) { selectedGrade = it }
+    }
+
+        GradeDetailSheet(
+            grade = selectedGrade,
+            subject = selectedGrade?.let { grade ->
+                snapshot?.subjects?.find { it.id == grade.subjectId }
+            },
+            subjectAverage = selectedGrade?.let { grade ->
+                snapshot?.subjectAverages?.find { it.subjectId == grade.subjectId }
+            },
+            onDismiss = { selectedGrade = null },
+        )
     }
 }
 
@@ -239,7 +267,10 @@ private fun LazyListScope.homeSubjectsSection(subjects: List<com.pronote.clay.do
 }
 
 /** Huit dernières notes, avec leur état vide. */
-private fun LazyListScope.homeGradesSection(snapshot: com.pronote.clay.domain.SchoolSnapshot?) {
+private fun LazyListScope.homeGradesSection(
+    snapshot: com.pronote.clay.domain.SchoolSnapshot?,
+    onSelect: (Grade) -> Unit,
+) {
     item {
         ClayReveal(index = 5) {
             Column {
@@ -256,7 +287,7 @@ private fun LazyListScope.homeGradesSection(snapshot: com.pronote.clay.domain.Sc
         itemsIndexed(grades.take(8), key = { _, grade -> grade.id }) { index, grade ->
             ClayReveal(index = 2 + index) {
                 Column {
-                    GradeRowCard(grade, snapshot?.subjects)
+                    GradeRowCard(grade, snapshot?.subjects) { onSelect(grade) }
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -625,17 +656,24 @@ private fun SubjectRowCard(row: com.pronote.clay.domain.SubjectRow) {
     }
 }
 
+/**
+ * Une ligne de note, volontairement dépouillée : l'intitulé et la note.
+ *
+ * Matière, date et coefficient remplissaient la liste sans aider à lire les
+ * notes ; ils vivent désormais dans la fiche qui s'ouvre au toucher.
+ */
 @Composable
-private fun GradeRowCard(grade: Grade, subjects: List<Subject>?) {
+private fun GradeRowCard(grade: Grade, subjects: List<Subject>?, onClick: () -> Unit) {
     val subject = subjects?.find { it.id == grade.subjectId }
     val accent = subjectAccent(subject?.colorIndex ?: 0)
     ClaySurface(
         modifier = Modifier.fillMaxWidth(),
         depth = 4.dp,
         shape = RoundedCornerShape(18.dp),
+        onClick = onClick,
     ) {
         Row(
-            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -644,25 +682,14 @@ private fun GradeRowCard(grade: Grade, subjects: List<Subject>?) {
                     .clay(depth = 3.dp, shape = androidx.compose.foundation.shape.CircleShape, tint = accent),
             )
             Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(grade.title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    listOfNotNull(
-                        subject?.shortName ?: "—",
-                        formatDate(grade.date),
-                        "coef. " + AverageCalculator.trim(grade.coefficient),
-                    ).joinToString(" • "),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (!grade.countsTowardAverage) {
-                ClayPill(
-                    text = "non comptée",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-            }
+            Text(
+                grade.title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(10.dp))
             Text(
                 AverageCalculator.formatGrade(grade.value, grade.maxValue),
                 style = MaterialTheme.typography.headlineMedium,
@@ -672,9 +699,198 @@ private fun GradeRowCard(grade: Grade, subjects: List<Subject>?) {
     }
 }
 
-private fun formatDate(iso: String): String = try {
+/**
+ * Fiche d'une note — le pendant du geste « tap » sur la liste.
+ *
+ * Elle monte du bas avec un ressort légèrement rebondissant, façon feuille
+ * iOS, et montre tout ce que la ligne a retiré : matière, professeur, barème,
+ * coefficient, date longue, moyenne de la matière et commentaire.
+ * Fermeture au toucher du fond, au bouton retour ou au bouton « Fermer ».
+ */
+@Composable
+private fun GradeDetailSheet(
+    grade: Grade?,
+    subject: Subject?,
+    subjectAverage: com.pronote.clay.domain.SubjectAverage?,
+    onDismiss: () -> Unit,
+) {
+    // La note reste affichée le temps de l'animation de sortie.
+    var shown by remember { mutableStateOf<Pair<Grade, Subject?>?>(null) }
+    LaunchedEffect(grade) { if (grade != null) shown = grade to subject }
+
+    AnimatedVisibility(
+        visible = grade != null,
+        enter = slideInVertically(
+            initialOffsetY = { height -> height },
+            // Rebond volontairement marqué : le panneau dépasse sa position
+            // puis se stabilise, au lieu de s'arrêter net.
+            animationSpec = spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow),
+        ) + fadeIn(animationSpec = tween(140)),
+        exit = slideOutVertically(
+            targetOffsetY = { height -> height },
+            animationSpec = tween(180),
+        ) + fadeOut(animationSpec = tween(160)),
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.34f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismiss,
+                    ),
+            )
+            shown?.let { (current, currentSubject) ->
+                GradeDetailCard(
+                    grade = current,
+                    subject = currentSubject,
+                    subjectAverage = subjectAverage,
+                    onDismiss = onDismiss,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GradeDetailCard(
+    grade: Grade,
+    subject: Subject?,
+    subjectAverage: com.pronote.clay.domain.SubjectAverage?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BackHandler(onBack = onDismiss)
+    val accent = subjectAccent(subject?.colorIndex ?: 0)
+
+    ClaySurface(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        depth = 16.dp,
+        shape = RoundedCornerShape(30.dp),
+    ) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(width = 44.dp, height = 5.dp)
+                    .clay(
+                        depth = 2.dp,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                    ),
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(grade.title, style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .clay(depth = 3.dp, shape = androidx.compose.foundation.shape.CircleShape, tint = accent),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    listOfNotNull(
+                        subject?.name ?: "Matière inconnue",
+                        subject?.teacher?.takeIf { it.isNotBlank() },
+                    ).joinToString(" • "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    AverageCalculator.formatGrade(grade.value, grade.maxValue),
+                    fontSize = 44.sp,
+                    lineHeight = 46.sp,
+                    fontWeight = FontWeight.Black,
+                )
+                if (!grade.countsTowardAverage) {
+                    Spacer(Modifier.width(10.dp))
+                    ClayPill(
+                        text = "non comptée",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            GradeDetailRow("Date", longDate(grade.date))
+            GradeDetailRow("Coefficient", AverageCalculator.trim(grade.coefficient))
+            GradeDetailRow("Barème", "sur " + AverageCalculator.trim(grade.maxValue))
+            GradeDetailRow(
+                "Comptée dans la moyenne",
+                if (grade.countsTowardAverage) "oui" else "non",
+            )
+            if (subjectAverage != null) {
+                GradeDetailRow(
+                    "Moyenne de la matière",
+                    AverageCalculator.formatAverage(subjectAverage.value) + "/20" +
+                        if (subjectAverage.source == com.pronote.clay.domain.AverageSource.CALCULATED) {
+                            " (calculée)"
+                        } else {
+                            ""
+                        },
+                )
+            }
+            grade.comment?.takeIf { it.isNotBlank() }?.let { comment ->
+                Spacer(Modifier.height(14.dp))
+                ClaySurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    depth = 3.dp,
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(
+                        comment,
+                        Modifier.padding(14.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            ClayButton(text = "Fermer", onClick = onDismiss)
+        }
+    }
+}
+
+@Composable
+private fun GradeDetailRow(label: String, value: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+private fun longDate(iso: String): String = try {
     val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(iso)
-    if (parsed == null) iso else SimpleDateFormat("d MMM", Locale.FRENCH).format(parsed)
+    if (parsed == null) {
+        iso
+    } else {
+        SimpleDateFormat("EEEE d MMMM yyyy", Locale.FRENCH).format(parsed)
+    }
 } catch (_: Exception) {
     iso
 }

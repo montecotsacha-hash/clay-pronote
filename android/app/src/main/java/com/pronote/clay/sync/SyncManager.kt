@@ -90,12 +90,17 @@ class SyncManager(
         Logger.info("Sync started")
         var result = repository.sync(accountId)
 
-        // Une session Pronote expirée se rétablit toute seule : on retente une
+        // Une session Pronote mourante se rétablit toute seule : on retente une
         // fois après une reconnexion silencieuse, et on n'alerte l'utilisateur
         // que si le problème persiste. Une seule tentative — jamais de boucle.
-        if (result is PronoteResult.Failure && result.error is PronoteError.SessionExpired &&
-            repository.refreshSession(accountId) != null
-        ) {
+        // Un jeton refusé (InvalidCredentials) est traité comme une session
+        // expirée : le coffre sait refabriquer la session avec le mot de passe,
+        // donc « identifiants incorrects » ne doit pas s'afficher pour ça.
+        val failure = result as? PronoteResult.Failure
+        val recoverable = failure != null &&
+            (failure.error is PronoteError.SessionExpired ||
+                failure.error is PronoteError.InvalidCredentials)
+        if (recoverable && repository.refreshSession(accountId) != null) {
             Logger.info("Session expirée : reconnexion puis nouvelle tentative")
             result = repository.sync(accountId)
         }
@@ -138,6 +143,9 @@ class SyncManager(
     companion object {
         /** Unique WorkManager work name. */
         const val PERIODIC_SYNC_WORK_NAME = "pronote_periodic_sync"
+
+        /** One-shot pass enqueued at every app start (same worker). */
+        const val STARTUP_SYNC_WORK_NAME = "pronote_startup_sync"
 
         /** Minimum delay between two automatic syncs. */
         const val MIN_SYNC_INTERVAL_MS = 5 * 60 * 1000L

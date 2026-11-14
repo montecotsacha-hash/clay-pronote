@@ -131,6 +131,12 @@ class PronoteDirectDataSource : PronoteDataSource {
                 return@withContext PronoteResult.Failure(mapError(error))
             }
         }
+        // Aucun jeton mobile exploitable (login par identifiants qui n'en a pas
+        // renvoyé, ou coffre vidé) : on signale une session expirée, jamais de
+        // mauvais identifiants. La chaîne qui détient le mot de passe peut
+        // alors refabriquer une session sans rien demander à l'utilisateur.
+        if (token.isBlank()) return@withContext PronoteResult.Failure(PronoteError.SessionExpired)
+
         when (val restored = connectWithToken(token, schoolUrl, username, deviceUuid)) {
             is PronoteResult.Success -> PronoteResult.Success(restored.value.payload)
             is PronoteResult.Failure -> restored

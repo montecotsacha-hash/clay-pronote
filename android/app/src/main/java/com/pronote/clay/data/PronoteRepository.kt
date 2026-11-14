@@ -141,15 +141,22 @@ class PronoteRepositoryImpl(
         sessions.refreshSession(accountId)
 
     override suspend fun sync(accountId: String): PronoteResult<SchoolSnapshot> {
-        val stored = sessions.load(accountId)
+        var stored = sessions.load(accountId)
             ?: return PronoteResult.Failure(PronoteError.SessionExpired)
 
-        val result = connector.fetchAll(
-            token = stored.token.orEmpty(),
-            schoolUrl = stored.schoolUrl,
-            username = stored.username,
-            deviceUuid = stored.deviceUuid.orEmpty(),
-        )
+        var result = fetchSnapshot(stored)
+
+        // Une session Pronote meurt sans prévenir : autre appareil connecté,
+        // purge côté serveur, jeton jamais émis… Le mot de passe gardé dans le
+        // coffre permet de la refabriquer. On rejoue donc la collecte une seule
+        // fois, au lieu de renvoyer l'utilisateur à l'écran de connexion.
+        if (result is PronoteResult.Failure && canRecover(result.error)) {
+            if (sessions.refreshSession(accountId) != null) {
+                stored = sessions.load(accountId) ?: stored
+                result = fetchSnapshot(stored)
+            }
+        }
+
         if (result is PronoteResult.Failure) return result
 
         val snapshot = toSnapshot((result as PronoteResult.Success).value)
@@ -158,6 +165,25 @@ class PronoteRepositoryImpl(
         Logger.info("Grades updated")
         return PronoteResult.Success(snapshot)
     }
+
+    /** Une seule collecte, avec les identifiants déjà stockés. */
+    private suspend fun fetchSnapshot(
+        stored: SecureCredentialsManager.StoredCredentials,
+    ): PronoteResult<PronoteRawPayload> =
+        connector.fetchAll(
+            token = stored.token.orEmpty(),
+            schoolUrl = stored.schoolUrl,
+            username = stored.username,
+            deviceUuid = stored.deviceUuid.orEmpty(),
+        )
+
+    /**
+     * Erreurs qu'une reconnexion silencieuse peut corriger : sans ça, une
+     * session périmée s'affiche comme « identifiants incorrects » et oblige à
+     * se déconnecter puis se reconnecter à la main.
+     */
+    private fun canRecover(error: PronoteError): Boolean =
+        error is PronoteError.SessionExpired || error is PronoteError.InvalidCredentials
 
     override fun getHistory(accountId: String, days: Long): List<HistoryPoint> {
         val snapshot = local.loadSnapshot(accountId) ?: return emptyList()

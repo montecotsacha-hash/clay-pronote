@@ -139,6 +139,25 @@ class SyncManagerTest {
     }
 
     @Test
+    fun `reconnecte aussi quand le serveur refuse le jeton`() = runBlocking {
+        // Un jeton mobile mort remonte du connecteur comme « identifiants
+        // incorrects ». Sans cette reprise, l'utilisateur devait se déconnecter
+        // puis se reconnecter à la main pour ravoir ses notes à jour.
+        val repository = FakeRepository(snapshot(grade("a")), PronoteError.InvalidCredentials).apply {
+            failuresBeforeSuccess = 1
+            restoredSession = restorableSession()
+        }
+        val manager = SyncManager(repository) { true }
+
+        val result = manager.sync("acct")
+
+        assertTrue(result.ok)
+        assertNull(result.error)
+        assertEquals(1, repository.restoreCount)
+        assertEquals(2, repository.syncCount)
+    }
+
+    @Test
     fun `gives up after a single reconnect attempt`() = runBlocking {
         val repository = FakeRepository(snapshot(grade("a")), PronoteError.SessionExpired).apply {
             restoredSession = restorableSession()

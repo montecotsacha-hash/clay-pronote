@@ -1,7 +1,10 @@
 package com.pronote.clay.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +43,7 @@ import com.pronote.clay.data.remote.UpdateStatus
 import com.pronote.clay.ui.components.ConfirmDeleteDialog
 import com.pronote.clay.ui.components.ClayButton
 import com.pronote.clay.ui.components.ClayDivider
+import com.pronote.clay.ui.components.ClayPill
 import com.pronote.clay.ui.components.ClayReveal
 import com.pronote.clay.ui.components.ClaySecondaryButton
 import com.pronote.clay.ui.components.ClaySettingRow
@@ -152,8 +156,55 @@ private fun SyncCard(viewModel: HomeViewModel) {
                     },
                 )
             }
+            ClayDivider()
+            val context = LocalContext.current
+            var backgroundAllowed by remember { mutableStateOf(isBackgroundSyncAllowed(context)) }
+            ClaySettingRow(
+                title = "Alertes même application fermée",
+                description = if (backgroundAllowed) {
+                    "Android peut réveiller Ardoise en arrière-plan : les nouvelles notes arrivent sans ouvrir l'app."
+                } else {
+                    "Android gèle les réveils en arrière-plan : les alertes n'arrivent qu'à l'ouverture. Autorise Ardoise à ignorer l'optimisation de batterie."
+                },
+            ) {
+                ClayPill(
+                    text = if (backgroundAllowed) "Autorisé" else "Autoriser",
+                    tint = if (backgroundAllowed) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.secondary
+                    },
+                    onClick = if (backgroundAllowed) {
+                        null
+                    } else {
+                        {
+                            requestBackgroundSync(context)
+                            backgroundAllowed = isBackgroundSyncAllowed(context)
+                        }
+                    },
+                )
+            }
         }
     }
+}
+
+/**
+ * Android regroupe les réveils en arrière-plan (Doze) et certains
+ * constructeurs les gèlent complètement : sans exemption de batterie, une
+ * synchronisation périodique ne tourne qu'à l'ouverture de l'app, donc les
+ * notifications n'arrivent qu'à ce moment-là.
+ */
+private fun isBackgroundSyncAllowed(context: Context): Boolean {
+    val power = context.getSystemService(PowerManager::class.java) ?: return true
+    return power.isIgnoringBatteryOptimizations(context.packageName)
+}
+
+private fun requestBackgroundSync(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+        Uri.parse("package:${context.packageName}"),
+    )
+    runCatching { context.startActivity(intent) }
 }
 
 /** Thème, couleurs dynamiques et prénom affiché. */

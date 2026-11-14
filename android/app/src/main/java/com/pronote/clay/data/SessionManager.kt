@@ -52,7 +52,10 @@ class SessionManager(
     suspend fun restoreSession(accountId: String): PronoteResult<PronoteSession> {
         val stored = vault.load(accountId) ?: return PronoteResult.Failure(PronoteError.SessionExpired)
 
-        stored.token?.let { token ->
+        // Un jeton vide n'est pas une session : le tenter renvoie une erreur du
+        // serveur qui ressemble à de mauvais identifiants. On saute directement
+        // au mot de passe du coffre.
+        stored.token?.takeIf { it.isNotBlank() }?.let { token ->
             val restored = connector.restoreSession(
                 token = token,
                 schoolUrl = stored.schoolUrl,
