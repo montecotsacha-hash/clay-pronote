@@ -1,0 +1,20 @@
+name: Contrôle secrets et données personnelles
+
+# Le dépôt est public : chaque push et chaque pull request passe ce contrôle,
+# qui échoue si un jeton, une clé ou une donnée personnelle est commité.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  privacy:
+    name: Aucun secret ni donnée personnelle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contrôle des fichiers suivis
+        run: bash scripts/check-privacy.sh

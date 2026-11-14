@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { VERSION_LABEL } from "./version";
+
 const APK_URL = "/Ardoise.apk";
 const APK_NAME = "Ardoise.apk";
 
@@ -75,7 +77,7 @@ export default function App() {
         style={delay(80)}
       >
         <span className="clay-chip">
-          Version 1.5.0 · Android 7.0 et plus · environ 12 Mo
+          Version {VERSION_LABEL} · Android 7.0 et plus · environ 12 Mo
         </span>
         <h1 className="mx-auto mt-6 max-w-2xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
           Tes notes, enfin <span className="text-[#9b7be0]">lisibles</span>.

@@ -59,14 +59,10 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
     },
   );
 
-  it("porte le nouveau nom, racine comme ancien chemin", () => {
-    const rootCopy = join(ROOT, "Ardoise.apk");
-    const legacyCopy = join(ROOT, "public", "Pronote.apk");
-    expect(existsSync(rootCopy)).toBe(true);
-    expect(existsSync(legacyCopy)).toBe(true);
-    expect(sha256(rootCopy)).toBe(sha256(APK_PATH));
-    expect(sha256(join(ROOT, "Pronote.apk"))).toBe(sha256(APK_PATH));
-    expect(sha256(legacyCopy)).toBe(sha256(APK_PATH));
+  it("n'existe qu'en un seul exemplaire dans le dépôt", () => {
+    expect(existsSync(join(ROOT, "Ardoise.apk"))).toBe(false);
+    expect(existsSync(join(ROOT, "Pronote.apk"))).toBe(false);
+    expect(existsSync(join(ROOT, "public", "Pronote.apk"))).toBe(false);
   });
 
   it("ne contient aucune entité HTML brute visible dans du texte JSX", () => {
@@ -80,7 +76,8 @@ describe("APK Ardoise téléchargeable depuis le site", () => {
     expect(app).not.toMatch(
       /identifiants de démonstration|sans jamais envoyer tes identifiants|aucune donnée collectée|clé de débogage/i,
     );
-    expect(app).toContain("Version 1.5.0");
+    // La version affichée vient de src/version.ts, seule source de vérité.
+    expect(app).toContain("Version {VERSION_LABEL}");
     expect(app).toContain("directement au serveur Pronote");
     expect(app).toContain("Les accès via un ENT ne sont pas pris en charge");
   });

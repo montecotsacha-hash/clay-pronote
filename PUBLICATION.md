@@ -40,16 +40,29 @@ un compte Play public personnel gratuit :
 | Élément                     | Valeur                                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
 | `applicationId`             | `com.pronote.clay`                                                                         |
-| Version                     | 1.5.0 (versionCode 12)                                                                     |
+| Version                     | 1.5.0 « Boussole » (versionCode 12)                                                        |
 | Android minimum / cible     | API 24 (7.0) / API 35                                                                      |
 | APK signé (site + releases) | `Ardoise.apk` — SHA-256 `8922939c65ed8a0303f0f9fab7a1b6d3c79bfbcf4076b8797c7bb182262d534b` |
 | Bundle pour magasins        | `Ardoise.aab` — SHA-256 `465e3e37553b9c0e35c09d82513358fb6b7cc3f89054d36400bf535a71759187` |
 | Clé d'upload                | `android/app/upload-keystore.jks` (RSA 4096, valable 30 ans), hors git                     |
 | Mots de passe de la clé     | `android/app/keystore.properties`, hors git                                                |
 | Captures d'écran            | `screenshots/` (page d'accueil : captures Play de l'app à produire)                        |
-| Page de téléchargement      | <https://site-212736d17ebe48aea4f786a17c2d27ff.freebuff.page>                              |
+| Page de téléchargement      | <https://ardoise.freebuff.page>                                                            |
 
-Note : ces binaires sont ceux du dépôt. La page publique sert encore la 1.4.0 — l'envoi de l'APK 1.5.0 demande le jeton `.site-upload-token`, absent de ce poste.
+Note : la page publique sert déjà cette version — `/version.json` annonce `versionCode` 12
+et l'empreinte du fichier téléchargé est identique à celle de la release.
+
+## Nommage des versions
+
+Chaque version reçoit un **nom propre, jamais réutilisé** (voir `CHANGELOG.md`) :
+`1.5.0` = « Boussole », `1.4.0` = « Écho ». Le nom est affiché sur le site, dans
+le titre de la release et dans le journal, donc un changement de nom signale un
+changement de version. La liste des noms à venir est en bas de `CHANGELOG.md` :
+on prend le premier de la liste et on l'y retire.
+
+Deux contrôles automatiques refusent une version mal nommée :
+`src/version.test.ts` (noms uniques, même version dans le journal, le site et
+Gradle) et `.github/workflows/privacy.yml` (aucun secret ni donnée personnelle).
 
 ⚠️ **Sauvegarde `upload-keystore.jks` + `keystore.properties` maintenant.** Cette
 clé est la seule à pouvoir mettre à jour une app déjà installée. Si elle est
@@ -79,7 +92,7 @@ git tag v1.5.0 && git push origin v1.5.0
 ```
 
 Côté utilisateur, la mise à jour automatique se fait avec **Obtainium** : ajouter
-l'URL des releases (`https://github.com/Martineleve-hash/clay-pronote/releases`)
+l'URL des releases (`https://github.com/montecotsacha-hash/ardoise/releases`)
 dans l'app, qui suit ensuite chaque nouvelle version sans magasin.
 
 ## Cohérence de signature : alignée le 16 octobre

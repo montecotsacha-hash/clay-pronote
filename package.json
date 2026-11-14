@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "check:privacy": "bash scripts/check-privacy.sh",
     "typecheck": "tsc -b --noEmit",
     "format": "prettier --write .",
     "preview": "vite preview"

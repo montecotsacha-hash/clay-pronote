@@ -1,0 +1,18 @@
+# Motifs recherchés par scripts/check-privacy.sh (une règle par ligne).
+# Format : type|expression régulière (ERE)|raison
+#   secret = jeton ou clé qui ne doit jamais entrer dans le dépôt
+#   person = donnée personnelle de l'auteur (nom, prénom, adresse)
+# Ce fichier est exclu du scan (il contient forcément les motifs).
+
+secret|github_pat_[A-Za-z0-9_]{20,}|jeton GitHub fin
+secret|gh[pousr]_[A-Za-z0-9]{30,}|jeton GitHub classique
+secret|sk-[A-Za-z0-9]{20,}|clé d'API de type OpenAI
+secret|AKIA[0-9A-Z]{16}|clé d'accès AWS
+secret|AIza[0-9A-Za-z_-]{30,}|clé d'API Google
+secret|xox[baprs]-[A-Za-z0-9-]{10,}|jeton Slack
+secret|-----BEGIN [A-Z ]*PRIVATE KEY-----|clé privée
+secret|PRIVATE KEY-----|fragment de clé privée
+
+person|sacha|prénom de l'auteur
+person|mont[ée]cot|nom de l'auteur
+person|montecotsacha@gmail\.com|adresse e-mail personnelle
